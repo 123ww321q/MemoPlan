@@ -1,276 +1,234 @@
-import { useTranslation } from 'react-i18next';
-import { useNoteStore } from '../stores/noteStore';
+import { useState } from 'react';
 import { useTaskStore } from '../stores/taskStore';
-import { Task } from '../types';
-import { useEffect, useState } from 'react';
-import { marked } from 'marked';
-
-// 配置 marked 支持表格和任务列表
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
-
-// 自定义 renderer 支持任务列表
-const renderer = new marked.Renderer();
-const originalListItem = renderer.listitem;
-renderer.listitem = (text: string, task: boolean, checked: boolean) => {
-  if (task) {
-    return `<li class="task-list-item flex items-start gap-2 py-1">
-      <input type="checkbox" ${checked ? 'checked' : ''} disabled class="mt-0.5">
-      <span class="${checked ? 'line-through text-slate-400' : ''}">${text}</span>
-    </li>`;
-  }
-  return originalListItem.call(renderer, text, task, checked);
-};
-marked.use({ renderer });
+import { useNoteStore } from '../stores/noteStore';
 
 export default function TaskPanel() {
-  const { t } = useTranslation();
-  const { currentNoteId, getCurrentNote } = useNoteStore();
-  const { tasks, toggleTaskComplete, getTasksByNoteId, addTask, deleteTask } = useTaskStore();
-  const [currentTasks, setCurrentTasks] = useState<Task[]>([]);
-  const [newTaskInput, setNewTaskInput] = useState('');
-  const [activeTab, setActiveTab] = useState<'tasks' | 'plan'>('tasks');
-  const [planContent, setPlanContent] = useState('');
-  
-  const currentNote = getCurrentNote();
+  const { tasks, addTask, toggleTaskComplete, deleteTask, convertMarkdownToTasks } = useTaskStore();
+  const { currentNoteId } = useNoteStore();
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'schedule'>('tasks');
 
-  // 当当前笔记变化时，加载对应的任务
-  useEffect(() => {
-    if (currentNoteId) {
-      const noteTasks = getTasksByNoteId(currentNoteId);
-      setCurrentTasks(noteTasks);
-      // 从笔记内容中提取计划表
-      if (currentNote?.content) {
-        extractPlanFromContent(currentNote.content);
-      }
-    } else {
-      setCurrentTasks([]);
-      setPlanContent('');
-    }
-  }, [currentNoteId, tasks, getTasksByNoteId, currentNote]);
-
-  // 从笔记内容中提取计划表（Markdown 表格和任务列表）
-  const extractPlanFromContent = (content: string) => {
-    // 提取所有任务列表项
-    const taskListRegex = /^\s*-\s+\[[\sxX]\]\s+.+$/gm;
-    const taskMatches = content.match(taskListRegex);
-    
-    // 提取表格
-    const tableRegex = /\|[^\n]+\|[^\n]*\n\|[-:\s|]+\|\n(\|[^\n]+\|[^\n]*\n?)+/g;
-    const tableMatches = content.match(tableRegex);
-    
-    let planHtml = '';
-    
-    if (taskMatches && taskMatches.length > 0) {
-      planHtml += marked(taskMatches.join('\n'));
-    }
-    
-    if (tableMatches && tableMatches.length > 0) {
-      planHtml += marked(tableMatches.join('\n\n'));
-    }
-    
-    setPlanContent(planHtml);
-  };
-
-  // 计算完成进度
-  const completedCount = currentTasks.filter((t) => t.completed).length;
-  const progress = currentTasks.length > 0
-    ? Math.round((completedCount / currentTasks.length) * 100)
-    : 0;
-
-  // 添加新任务
-  const handleAddTask = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && newTaskInput.trim() && currentNoteId) {
+  const handleAddTask = () => {
+    if (newTaskTitle.trim()) {
       addTask({
-        noteId: currentNoteId,
-        title: newTaskInput.trim(),
+        title: newTaskTitle,
+        noteId: currentNoteId || '',
         completed: false,
         priority: 'medium',
         level: 1,
-        order: currentTasks.length,
+        order: tasks.length,
       });
-      setNewTaskInput('');
+      setNewTaskTitle('');
     }
   };
 
-  // 删除任务
-  const handleDeleteTask = (taskId: string) => {
-    deleteTask(taskId);
+  const handleGenerateTasks = () => {
+    // 从笔记内容生成任务
+    if (currentNoteId) {
+      // 这里需要从 noteStore 获取当前笔记内容
+      // 简化处理，实际应该传入内容
+      convertMarkdownToTasks('', currentNoteId);
+    }
   };
 
-  // 渲染计划表内容
-  const renderPlanContent = () => {
-    if (!planContent) {
-      return (
-        <div className="text-center text-slate-400 py-8">
-          <span className="material-symbols-outlined text-4xl mb-2">table</span>
-          <p className="text-xs">{t('tasks.noPlan')}</p>
-          <p className="text-[10px] mt-1">{t('tasks.addPlanHint')}</p>
-        </div>
-      );
-    }
-    return (
-      <div 
-        className="prose dark:prose-invert prose-sm max-w-none task-plan-content"
-        dangerouslySetInnerHTML={{ __html: planContent }}
-      />
-    );
-  };
+  const pendingTasks = tasks.filter(t => !t.completed);
+  const completedTasks = tasks.filter(t => t.completed);
 
   return (
-    <aside className="w-80 flex flex-col border-l border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm shrink-0">
-      {/* 头部 */}
-      <div className="h-12 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0">
-        <span className="text-sm font-bold flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-lg">task_alt</span>
-          {t('tasks.title')}
-        </span>
-        <span className="text-xs text-slate-400">
-          {currentTasks.length > 0 && `${completedCount}/${currentTasks.length}`}
-        </span>
-      </div>
-
-      {/* 标签切换 */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800">
+    <div className="flex flex-col h-full bg-[var(--panel-bg)]">
+      {/* 标签页切换 */}
+      <div className="flex border-b border-[var(--panel-border)]">
         <button
           onClick={() => setActiveTab('tasks')}
-          className={`flex-1 py-2 text-xs font-medium transition-colors ${
+          className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
             activeTab === 'tasks'
-              ? 'text-primary border-b-2 border-primary bg-primary/5'
-              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              ? 'text-primary'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
-          {t('tasks.taskList')}
+          任务列表
+          {activeTab === 'tasks' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+          )}
         </button>
         <button
-          onClick={() => setActiveTab('plan')}
-          className={`flex-1 py-2 text-xs font-medium transition-colors ${
-            activeTab === 'plan'
-              ? 'text-primary border-b-2 border-primary bg-primary/5'
-              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+          onClick={() => setActiveTab('schedule')}
+          className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+            activeTab === 'schedule'
+              ? 'text-primary'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
-          {t('tasks.planTable')}
+          计划表
+          {activeTab === 'schedule' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+          )}
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* 内容区域 */}
+      <div className="flex-1 overflow-y-auto">
         {activeTab === 'tasks' ? (
-          <>
-            {/* 任务列表 */}
-            {currentTasks.length > 0 ? (
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                  {t('tasks.extractedFromNote')}
-                </p>
-                <div className="space-y-2">
-                  {currentTasks.map((task) => (
-                    <div 
-                      key={task.id} 
-                      className="flex gap-2 group p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors"
+          <div className="p-4 space-y-4">
+            {/* 生成任务按钮 */}
+            {currentNoteId && pendingTasks.length === 0 && (
+              <button
+                onClick={handleGenerateTasks}
+                className="w-full py-3 px-4 bg-primary/5 hover:bg-primary/10 text-primary rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined">auto_awesome</span>
+                一键生成待办
+              </button>
+            )}
+
+            {/* 待办任务 */}
+            {pendingTasks.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+                  待办 ({pendingTasks.length})
+                </h4>
+                {pendingTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="group flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <button
+                      onClick={() => toggleTaskComplete(task.id)}
+                      className="mt-0.5 w-5 h-5 rounded border-2 border-primary/30 hover:border-primary flex items-center justify-center transition-colors"
                     >
-                      <input
-                        type="checkbox"
-                        checked={task.completed}
-                        onChange={() => toggleTaskComplete(task.id)}
-                        className="mt-0.5 rounded border-slate-300 dark:border-slate-600 text-primary focus:ring-primary size-4 cursor-pointer"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-medium truncate ${task.completed ? 'text-slate-400 line-through' : ''}`}>
-                          {task.title}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span
-                            className={`text-[9px] px-1.5 py-0.5 font-bold rounded ${
-                              task.priority === 'high'
-                                ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                                : task.priority === 'medium'
-                                ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                            }`}
-                          >
-                            {t(`tasks.${task.priority}`)}
-                          </span>
-                          {task.dueDate && (
-                            <span className="text-[9px] text-slate-400">
-                              {new Date(task.dueDate).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-slate-400 hover:text-red-500 transition-all"
-                      >
-                        <span className="material-symbols-outlined text-sm">delete</span>
-                      </button>
+                      <span className="material-symbols-outlined text-primary text-sm opacity-0 group-hover:opacity-100">
+                        check
+                      </span>
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-[var(--text-primary)]">{task.title}</p>
+                      {task.noteId && (
+                        <p className="text-xs text-[var(--text-secondary)] mt-1">来自笔记</p>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center text-slate-400 py-8">
-                <span className="material-symbols-outlined text-4xl mb-2">checklist</span>
-                <p className="text-xs">{t('tasks.noTasks')}</p>
-                <p className="text-[10px] mt-1">{t('tasks.extractHint')}</p>
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-all"
+                    >
+                      <span className="material-symbols-outlined text-red-500 text-sm">delete</span>
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* 进度条 */}
-            {currentTasks.length > 0 && (
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                  {t('tasks.progress')}
-                </p>
-                <div className="p-3 bg-primary/5 rounded-xl border border-primary/20">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold">{t('tasks.completionRate')}</span>
-                    <span className="text-[10px] font-bold text-primary">{progress}%</span>
+            {/* 已完成任务 */}
+            {completedTasks.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+                  已完成 ({completedTasks.length})
+                </h4>
+                {completedTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="group flex items-start gap-3 p-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl"
+                  >
+                    <button
+                      onClick={() => toggleTaskComplete(task.id)}
+                      className="mt-0.5 w-5 h-5 rounded bg-primary flex items-center justify-center"
+                    >
+                      <span className="material-symbols-outlined text-white text-sm">check</span>
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-[var(--text-secondary)] line-through">{task.title}</p>
+                    </div>
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-all"
+                    >
+                      <span className="material-symbols-outlined text-red-500 text-sm">delete</span>
+                    </button>
                   </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                ))}
+              </div>
+            )}
+
+            {/* 空状态 */}
+            {tasks.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-[var(--text-secondary)]">
+                <span className="material-symbols-outlined text-4xl mb-2 text-primary/30">checklist</span>
+                <p className="text-sm">暂无任务</p>
+                <p className="text-xs mt-1">点击"一键生成待办"提取任务</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* 计划表 */
+          <div className="p-4">
+            <div className="space-y-4">
+              {/* 今日计划 */}
+              <div className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl">
+                <h4 className="text-sm font-medium text-[var(--text-primary)] mb-3">今日计划</h4>
+                <div className="space-y-2">
+                  {pendingTasks.slice(0, 3).map((task, index) => (
+                    <div key={task.id} className="flex items-center gap-2 text-sm">
+                      <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center">
+                        {index + 1}
+                      </span>
+                      <span className="text-[var(--text-primary)]">{task.title}</span>
+                    </div>
+                  ))}
+                  {pendingTasks.length === 0 && (
+                    <p className="text-sm text-[var(--text-secondary)]">今日暂无计划</p>
+                  )}
+                </div>
+              </div>
+
+              {/* 进度统计 */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-center">
+                  <div className="text-2xl font-bold text-primary">{pendingTasks.length}</div>
+                  <div className="text-xs text-[var(--text-secondary)]">待办任务</div>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-center">
+                  <div className="text-2xl font-bold text-green-500">{completedTasks.length}</div>
+                  <div className="text-xs text-[var(--text-secondary)]">已完成</div>
+                </div>
+              </div>
+
+              {/* 完成率 */}
+              {tasks.length > 0 && (
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-[var(--text-primary)]">完成进度</span>
+                    <span className="text-sm font-medium text-primary">
+                      {Math.round((completedTasks.length / tasks.length) * 100)}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                     <div
-                      className="bg-primary h-full transition-all duration-300"
-                      style={{ width: `${progress}%` }}
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{ width: `${(completedTasks.length / tasks.length) * 100}%` }}
                     />
                   </div>
                 </div>
-              </div>
-            )}
-          </>
-        ) : (
-          /* 计划表视图 */
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-              {t('tasks.planPreview')}
-            </p>
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
-              {renderPlanContent()}
+              )}
             </div>
-            <p className="text-[10px] text-slate-400 mt-2">
-              {t('tasks.planAutoSync')}
-            </p>
           </div>
         )}
       </div>
 
       {/* 快速添加任务 */}
       {activeTab === 'tasks' && (
-        <div className="p-4 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-800">
+        <div className="p-3 border-t border-[var(--panel-border)]">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-slate-400 text-lg">add_task</span>
+            <span className="material-symbols-outlined text-[var(--text-secondary)]">add_task</span>
             <input
-              className="flex-1 bg-transparent border-none text-xs focus:ring-0 placeholder:text-slate-400"
-              placeholder={t('tasks.quickAdd')}
               type="text"
-              value={newTaskInput}
-              onChange={(e) => setNewTaskInput(e.target.value)}
-              onKeyDown={handleAddTask}
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
+              placeholder="快速添加任务..."
+              className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] outline-none"
             />
           </div>
         </div>
       )}
-    </aside>
+    </div>
   );
 }

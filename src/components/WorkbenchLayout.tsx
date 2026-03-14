@@ -57,56 +57,62 @@ function ResizablePanel({
 
   // 折叠状态
   if (!isOpen) {
-    // 导航和笔记保留细窄区域
+    // 导航和笔记保留极窄区域（48px）
     if (config.collapseBehavior === 'narrow') {
       return (
         <div
-          className="shrink-0 flex flex-col bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm border-r border-slate-200 dark:border-slate-700 transition-all duration-300"
+          className="shrink-0 flex flex-col h-full bg-[var(--panel-bg)] border-r border-[var(--panel-border)] transition-all duration-300"
           style={{ width: config.collapsedWidth }}
         >
+          {/* 展开按钮 - 显示编号 */}
           <button
             onClick={onToggle}
-            className="w-full h-12 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group relative"
+            className="w-full h-12 flex items-center justify-center hover:bg-primary/5 transition-colors group relative"
             title={config.title}
           >
-            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">
+            <span className="text-sm font-bold text-primary">
               {config.index}
             </span>
+            {/* 悬停提示 */}
             <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
               {config.title}
             </span>
           </button>
-          <div className="flex-1 flex flex-col items-center py-2">
-            <span className="material-symbols-outlined text-lg text-slate-400">{config.icon}</span>
+          {/* 图标区域 */}
+          <div className="flex-1 flex flex-col items-center py-2 gap-2">
+            <span className="material-symbols-outlined text-lg text-[var(--text-secondary)]">{config.icon}</span>
           </div>
         </div>
       );
     }
-    // 其他面板完全隐藏
+    // 撰写、预览、任务完全隐藏
     return null;
   }
 
   // 展开状态
   return (
     <div
-      className={`shrink-0 flex flex-col bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-r border-slate-200 dark:border-slate-700 transition-all duration-300 ${isResizing ? 'select-none' : ''}`}
+      className={`shrink-0 flex flex-col h-full bg-[var(--panel-bg)] border-r border-[var(--panel-border)] transition-all duration-300 ${isResizing ? 'select-none' : ''}`}
       style={{ width }}
     >
       {/* 面板头部 */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+      <div className="flex items-center justify-between px-3 h-12 border-b border-[var(--panel-border)]">
         <div className="flex items-center gap-2">
+          {/* 编号 */}
           <span className="w-5 h-5 rounded bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
             {config.index}
           </span>
-          <span className="material-symbols-outlined text-sm text-slate-500">{config.icon}</span>
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{config.title}</span>
+          <span className="material-symbols-outlined text-sm text-[var(--text-secondary)]">{config.icon}</span>
+          <span className="text-sm font-medium text-[var(--text-primary)]">{config.title}</span>
         </div>
+
+        {/* 折叠按钮 */}
         <button
           onClick={onToggle}
-          className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           title="折叠"
         >
-          <span className="material-symbols-outlined text-sm text-slate-500">
+          <span className="material-symbols-outlined text-sm text-[var(--text-secondary)]">
             {config.position === 'right' ? 'chevron_right' : 'chevron_left'}
           </span>
         </button>
@@ -150,7 +156,7 @@ export default function WorkbenchLayout({
   );
 
   return (
-    <div className="flex flex-1 overflow-hidden relative">
+    <div className="flex flex-1 h-full overflow-hidden bg-[var(--background-light)] dark:bg-[var(--background-dark)]">
       {/* 1. 导航 */}
       {renderPanel('navigation', navigation)}
 
@@ -166,9 +172,10 @@ export default function WorkbenchLayout({
       {/* 5. 任务 */}
       {renderPanel('taskPanel', taskPanel)}
 
-      {/* 布局控制条 - 左下角 */}
-      <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
-        <div className="flex items-center gap-1 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-1.5">
+      {/* 底部布局控制栏 */}
+      <div className="fixed bottom-0 left-0 right-0 h-12 bg-[var(--panel-bg)] border-t border-[var(--panel-border)] flex items-center justify-between px-4 z-50">
+        {/* 左侧：数字控制按钮 */}
+        <div className="flex items-center gap-1">
           {[1, 2, 3, 4, 5].map((num) => {
             const key = Object.keys(defaultPanelConfigs).find(
               (k) => defaultPanelConfigs[k as PanelKey].index === num
@@ -178,25 +185,34 @@ export default function WorkbenchLayout({
               <button
                 key={num}
                 onClick={() => togglePanel(key)}
-                className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center ${
+                className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center text-sm font-bold ${
                   isActive
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
+                    ? 'bg-primary text-white'
+                    : 'text-[var(--text-secondary)] hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
                 title={`${defaultPanelConfigs[key].title} (${num})`}
               >
-                <span className="text-xs font-bold">{num}</span>
+                {num}
               </button>
             );
           })}
-          <div className="w-px h-5 bg-slate-300 dark:bg-slate-600 mx-1" />
+          <div className="w-px h-5 bg-[var(--panel-border)] mx-2" />
           <button
             onClick={resetLayout}
-            className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center text-slate-500"
+            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-[var(--text-secondary)]"
             title="恢复默认布局"
           >
             <span className="material-symbols-outlined text-sm">refresh</span>
           </button>
+        </div>
+
+        {/* 右侧：状态信息 */}
+        <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            系统同步中
+          </span>
+          <span>快捷键指南</span>
         </div>
       </div>
     </div>

@@ -15,11 +15,10 @@ export interface PanelConfig {
   width: number;
   minWidth: number;
   maxWidth: number;
-  collapsedWidth: number; // 导航和笔记保留细窄区域，其他为0
+  collapsedWidth: number;
   icon: string;
   title: string;
   position: 'left' | 'center' | 'right';
-  // 折叠行为：'narrow'=保留窄条, 'hide'=完全隐藏
   collapseBehavior: 'narrow' | 'hide';
 }
 
@@ -30,7 +29,7 @@ export const defaultPanelConfigs: Record<PanelKey, PanelConfig> = {
     width: 200,
     minWidth: 160,
     maxWidth: 280,
-    collapsedWidth: 48, // 保留细窄区域
+    collapsedWidth: 48,
     icon: 'menu',
     title: '导航',
     position: 'left',
@@ -41,7 +40,7 @@ export const defaultPanelConfigs: Record<PanelKey, PanelConfig> = {
     width: 280,
     minWidth: 220,
     maxWidth: 400,
-    collapsedWidth: 48, // 保留细窄区域
+    collapsedWidth: 48,
     icon: 'list',
     title: '笔记',
     position: 'left',
@@ -52,7 +51,7 @@ export const defaultPanelConfigs: Record<PanelKey, PanelConfig> = {
     width: 500,
     minWidth: 300,
     maxWidth: 800,
-    collapsedWidth: 0, // 完全隐藏
+    collapsedWidth: 0,
     icon: 'edit',
     title: '撰写',
     position: 'center',
@@ -63,7 +62,7 @@ export const defaultPanelConfigs: Record<PanelKey, PanelConfig> = {
     width: 500,
     minWidth: 300,
     maxWidth: 800,
-    collapsedWidth: 0, // 完全隐藏
+    collapsedWidth: 0,
     icon: 'preview',
     title: '预览',
     position: 'center',
@@ -74,7 +73,7 @@ export const defaultPanelConfigs: Record<PanelKey, PanelConfig> = {
     width: 320,
     minWidth: 260,
     maxWidth: 450,
-    collapsedWidth: 0, // 完全隐藏
+    collapsedWidth: 0,
     icon: 'task_alt',
     title: '任务',
     position: 'right',
@@ -92,7 +91,6 @@ interface LayoutState {
   resetLayout: () => void;
   isPanelOpen: (key: PanelKey) => boolean;
   getPanelWidth: (key: PanelKey) => number;
-  getVisiblePanels: () => PanelKey[];
 }
 
 const defaultPanels: Record<PanelKey, boolean> = {
@@ -159,13 +157,6 @@ export const useLayoutStore = create<LayoutState>()(
           return state.panelWidths[key];
         }
         return config.collapsedWidth;
-      },
-
-      getVisiblePanels: () => {
-        const state = get();
-        return (Object.keys(state.panels) as PanelKey[]).filter(
-          (key) => state.panels[key] || defaultPanelConfigs[key].collapseBehavior === 'narrow'
-        );
       },
     }),
     {
