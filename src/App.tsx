@@ -9,7 +9,7 @@ import Sidebar from './components/Sidebar';
 import NoteList from './components/NoteList';
 import Editor from './components/Editor';
 import TaskPanel from './components/TaskPanel';
-import ResizableLayout from './components/ResizableLayout';
+import WorkbenchLayout from './components/WorkbenchLayout';
 import SettingsPage from './pages/SettingsPage';
 import TrashPage from './pages/TrashPage';
 import SearchPage from './pages/SearchPage';
@@ -262,10 +262,11 @@ function App() {
         onRedo={redo}
       />
 
-      <ResizableLayout
-        sidebar={<Sidebar currentView={currentView} onViewChange={setCurrentView} />}
+      <WorkbenchLayout
+        leftSidebar={<Sidebar currentView={currentView} onViewChange={setCurrentView} />}
         noteList={<NoteList currentView={currentView} />}
         editor={<Editor />}
+        preview={<div className="h-full overflow-auto p-4">预览区域</div>}
         taskPanel={<TaskPanel />}
       />
 
