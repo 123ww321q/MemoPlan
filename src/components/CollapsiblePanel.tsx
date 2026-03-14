@@ -37,8 +37,8 @@ export default function CollapsiblePanel({
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
-      const delta = config.position === 'right' 
-        ? startXRef.current - e.clientX 
+      const delta = config.position === 'right'
+        ? startXRef.current - e.clientX
         : e.clientX - startXRef.current;
       const newWidth = Math.max(config.minWidth, Math.min(config.maxWidth, startWidthRef.current + delta));
       onResize?.(newWidth);
@@ -54,21 +54,21 @@ export default function CollapsiblePanel({
     document.addEventListener('mouseup', handleMouseUp);
   }, [isResizing, width, config, onResize]);
 
-  // 折叠状态 - 显示最小入口
+  // 折叠状态 - 显示编号入口
   if (!isOpen) {
     return (
       <div
-        className={`shrink-0 flex flex-col items-center py-3 bg-slate-50/80 dark:bg-slate-900/80 border-r border-slate-200 dark:border-slate-700 transition-all duration-300 ${className}`}
+        className={`shrink-0 flex flex-col items-center py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-r border-slate-200 dark:border-slate-700 transition-all duration-300 ${className}`}
         style={{ width: config.collapsedWidth }}
       >
-        {/* 展开按钮 */}
+        {/* 展开按钮 - 显示编号 */}
         <button
           onClick={onToggle}
-          className="p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors group relative"
+          className="w-9 h-9 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center group relative"
           title={config.title}
         >
-          <span className="material-symbols-outlined text-xl text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">
-            {config.icon}
+          <span className="text-sm font-bold text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">
+            {config.index}
           </span>
           {/* 悬停提示 */}
           <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
@@ -76,20 +76,12 @@ export default function CollapsiblePanel({
           </span>
         </button>
 
-        {/* 额外图标（仅侧边栏） */}
-        {panelKey === 'leftSidebar' && (
-          <div className="flex flex-col gap-1 mt-4">
-            <button className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="全部笔记">
-              <span className="material-symbols-outlined text-lg text-slate-500">description</span>
-            </button>
-            <button className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="今日任务">
-              <span className="material-symbols-outlined text-lg text-slate-500">today</span>
-            </button>
-            <button className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="收藏">
-              <span className="material-symbols-outlined text-lg text-slate-500">star</span>
-            </button>
-          </div>
-        )}
+        {/* 图标指示器 */}
+        <div className="mt-2 flex flex-col items-center gap-1">
+          <span className="material-symbols-outlined text-lg text-slate-400">
+            {config.icon}
+          </span>
+        </div>
       </div>
     );
   }
@@ -98,20 +90,24 @@ export default function CollapsiblePanel({
   return (
     <div
       ref={panelRef}
-      className={`shrink-0 flex flex-col bg-slate-50/80 dark:bg-slate-900/80 border-r border-slate-200 dark:border-slate-700 transition-all duration-300 ${className} ${isResizing ? 'select-none' : ''}`}
+      className={`shrink-0 flex flex-col bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-r border-slate-200 dark:border-slate-700 transition-all duration-300 ${className} ${isResizing ? 'select-none' : ''}`}
       style={{ width }}
     >
       {/* 面板头部 */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-700">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
         <div className="flex items-center gap-2">
+          {/* 编号 */}
+          <span className="w-5 h-5 rounded bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+            {config.index}
+          </span>
           <span className="material-symbols-outlined text-sm text-slate-500">{config.icon}</span>
           <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{config.title}</span>
         </div>
-        
+
         {/* 折叠按钮 */}
         <button
           onClick={onToggle}
-          className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
           title="折叠"
         >
           <span className="material-symbols-outlined text-sm text-slate-500">

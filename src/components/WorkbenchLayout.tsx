@@ -3,16 +3,14 @@ import { useLayoutStore, PanelKey } from '../stores/layoutStore';
 import CollapsiblePanel from './CollapsiblePanel';
 
 interface WorkbenchLayoutProps {
-  leftSidebar: ReactNode;
-  noteList: ReactNode;
-  editor: ReactNode;
-  preview: ReactNode;
-  taskPanel: ReactNode;
+  navigation: ReactNode;    // 左侧导航+笔记列表（合并）
+  editor: ReactNode;        // 编辑器（撰写）
+  preview: ReactNode;       // 预览
+  taskPanel: ReactNode;     // 右侧任务
 }
 
 export default function WorkbenchLayout({
-  leftSidebar,
-  noteList,
+  navigation,
   editor,
   preview,
   taskPanel,
@@ -40,100 +38,91 @@ export default function WorkbenchLayout({
   );
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      {/* 左侧面板组 */}
-      {renderPanel('leftSidebar', leftSidebar)}
-      {renderPanel('noteList', noteList)}
+    <div className="flex flex-1 overflow-hidden relative">
+      {/* 1. 左侧导航+笔记列表 */}
+      {renderPanel('navigation', navigation)}
 
-      {/* 中间内容区 - 编辑器和预览 */}
-      <div className="flex-1 flex min-w-0">
-        {/* 编辑器 */}
-        {panels.editor ? (
-          <div 
-            className="flex-1 flex flex-col min-w-0 bg-white/50 dark:bg-slate-900/50"
-            style={{ flex: panels.preview ? undefined : 1 }}
-          >
-            {editor}
-          </div>
-        ) : (
-          <CollapsiblePanel
-            panelKey="editor"
-            isOpen={false}
-            width={0}
-            onToggle={() => togglePanel('editor')}
-          >
-            {null}
-          </CollapsiblePanel>
-        )}
+      {/* 2. 编辑器（撰写） */}
+      {renderPanel('editor', editor)}
 
-        {/* 预览 */}
-        {panels.preview ? (
-          <div 
-            className="flex-1 flex flex-col min-w-0 bg-white/30 dark:bg-slate-900/30 border-l border-slate-200 dark:border-slate-700"
-            style={{ flex: panels.editor ? undefined : 1 }}
-          >
-            {preview}
-          </div>
-        ) : (
-          <CollapsiblePanel
-            panelKey="preview"
-            isOpen={false}
-            width={0}
-            onToggle={() => togglePanel('preview')}
-          >
-            {null}
-          </CollapsiblePanel>
-        )}
-      </div>
+      {/* 3. 预览 */}
+      {renderPanel('preview', preview)}
 
-      {/* 右侧面板 */}
+      {/* 4. 右侧任务面板 */}
       {renderPanel('taskPanel', taskPanel)}
 
-      {/* 布局控制条 - 悬浮在右上角 */}
-      <div className="fixed top-14 right-4 z-40 flex items-center gap-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-1">
-        <button
-          onClick={() => togglePanel('leftSidebar')}
-          className={`p-1.5 rounded transition-colors ${panels.leftSidebar ? 'bg-primary/10 text-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-          title="切换导航栏"
-        >
-          <span className="material-symbols-outlined text-sm">menu</span>
-        </button>
-        <button
-          onClick={() => togglePanel('noteList')}
-          className={`p-1.5 rounded transition-colors ${panels.noteList ? 'bg-primary/10 text-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-          title="切换笔记列表"
-        >
-          <span className="material-symbols-outlined text-sm">list</span>
-        </button>
-        <button
-          onClick={() => togglePanel('editor')}
-          className={`p-1.5 rounded transition-colors ${panels.editor ? 'bg-primary/10 text-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-          title="切换编辑器"
-        >
-          <span className="material-symbols-outlined text-sm">edit</span>
-        </button>
-        <button
-          onClick={() => togglePanel('preview')}
-          className={`p-1.5 rounded transition-colors ${panels.preview ? 'bg-primary/10 text-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-          title="切换预览"
-        >
-          <span className="material-symbols-outlined text-sm">preview</span>
-        </button>
-        <button
-          onClick={() => togglePanel('taskPanel')}
-          className={`p-1.5 rounded transition-colors ${panels.taskPanel ? 'bg-primary/10 text-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-          title="切换任务面板"
-        >
-          <span className="material-symbols-outlined text-sm">task_alt</span>
-        </button>
-        <div className="w-px h-4 bg-slate-300 dark:bg-slate-600 mx-1" />
-        <button
-          onClick={resetLayout}
-          className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-          title="恢复默认布局"
-        >
-          <span className="material-symbols-outlined text-sm">refresh</span>
-        </button>
+      {/* 布局控制条 - 悬浮在左下角 */}
+      <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
+        {/* 面板切换按钮组 */}
+        <div className="flex items-center gap-1 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-1.5">
+          {/* 1 - 导航 */}
+          <button
+            onClick={() => togglePanel('navigation')}
+            className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center ${
+              panels.navigation
+                ? 'bg-primary text-white shadow-sm'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
+            }`}
+            title="导航 (1)"
+          >
+            <span className="text-xs font-bold">1</span>
+          </button>
+
+          {/* 2 - 撰写 */}
+          <button
+            onClick={() => togglePanel('editor')}
+            className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center ${
+              panels.editor
+                ? 'bg-primary text-white shadow-sm'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
+            }`}
+            title="撰写 (2)"
+          >
+            <span className="text-xs font-bold">2</span>
+          </button>
+
+          {/* 3 - 预览 */}
+          <button
+            onClick={() => togglePanel('preview')}
+            className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center ${
+              panels.preview
+                ? 'bg-primary text-white shadow-sm'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
+            }`}
+            title="预览 (3)"
+          >
+            <span className="text-xs font-bold">3</span>
+          </button>
+
+          {/* 4 - 任务 */}
+          <button
+            onClick={() => togglePanel('taskPanel')}
+            className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center ${
+              panels.taskPanel
+                ? 'bg-primary text-white shadow-sm'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
+            }`}
+            title="任务 (4)"
+          >
+            <span className="text-xs font-bold">4</span>
+          </button>
+
+          <div className="w-px h-5 bg-slate-300 dark:bg-slate-600 mx-1" />
+
+          {/* 重置布局 */}
+          <button
+            onClick={resetLayout}
+            className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center text-slate-500"
+            title="恢复默认布局"
+          >
+            <span className="material-symbols-outlined text-sm">refresh</span>
+          </button>
+        </div>
+
+        {/* 快捷键提示 */}
+        <div className="text-[10px] text-slate-400 px-2 opacity-0 hover:opacity-100 transition-opacity">
+          点击数字键 1-4 快速切换面板
+        </div>
       </div>
     </div>
   );

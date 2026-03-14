@@ -263,8 +263,14 @@ function App() {
       />
 
       <WorkbenchLayout
-        leftSidebar={<Sidebar currentView={currentView} onViewChange={setCurrentView} />}
-        noteList={<NoteList currentView={currentView} />}
+        navigation={
+          <div className="flex flex-col h-full">
+            <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+            <div className="flex-1 overflow-hidden">
+              <NoteList currentView={currentView} />
+            </div>
+          </div>
+        }
         editor={<Editor />}
         preview={<div className="h-full overflow-auto p-4">预览区域</div>}
         taskPanel={<TaskPanel />}

@@ -1,16 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// 可折叠区域类型
+// 可折叠区域类型 - 简化为5个主要区域
 export type PanelKey = 
-  | 'leftSidebar'    // 左侧主导航栏
-  | 'noteList'       // 笔记列表区
-  | 'editor'         // 编辑器区
+  | 'navigation'     // 左侧导航+笔记列表（合并）
+  | 'editor'         // 编辑器区（撰写）
   | 'preview'        // 预览区
   | 'taskPanel';     // 右侧任务区
 
 // 面板配置
 export interface PanelConfig {
+  index: number;        // 面板编号（1,2,3,4）
   width: number;        // 展开时的宽度
   minWidth: number;     // 最小宽度
   maxWidth: number;     // 最大宽度
@@ -22,47 +22,42 @@ export interface PanelConfig {
 
 // 默认面板配置
 export const defaultPanelConfigs: Record<PanelKey, PanelConfig> = {
-  leftSidebar: {
-    width: 200,
-    minWidth: 160,
-    maxWidth: 280,
-    collapsedWidth: 56,
+  navigation: {
+    index: 1,
+    width: 320,
+    minWidth: 260,
+    maxWidth: 450,
+    collapsedWidth: 48,
     icon: 'menu',
     title: '导航',
     position: 'left',
   },
-  noteList: {
-    width: 280,
-    minWidth: 220,
-    maxWidth: 400,
-    collapsedWidth: 56,
-    icon: 'list',
-    title: '笔记列表',
-    position: 'left',
-  },
   editor: {
+    index: 2,
     width: 500,
-    minWidth: 300,
+    minWidth: 350,
     maxWidth: 800,
-    collapsedWidth: 0,
+    collapsedWidth: 48,
     icon: 'edit',
-    title: '编辑器',
+    title: '撰写',
     position: 'center',
   },
   preview: {
+    index: 3,
     width: 500,
-    minWidth: 300,
+    minWidth: 350,
     maxWidth: 800,
-    collapsedWidth: 0,
+    collapsedWidth: 48,
     icon: 'preview',
     title: '预览',
     position: 'center',
   },
   taskPanel: {
+    index: 4,
     width: 320,
     minWidth: 260,
     maxWidth: 450,
-    collapsedWidth: 56,
+    collapsedWidth: 48,
     icon: 'task_alt',
     title: '任务',
     position: 'right',
@@ -84,19 +79,15 @@ interface LayoutState {
   setPanelWidth: (key: PanelKey, width: number) => void;
   resetLayout: () => void;
   
-  // 批量操作
-  openAllPanels: () => void;
-  closeAllPanels: () => void;
-  
   // 获取面板状态
   isPanelOpen: (key: PanelKey) => boolean;
   getPanelWidth: (key: PanelKey) => number;
+  getPanelIndex: (key: PanelKey) => number;
 }
 
 // 默认布局状态
 const defaultPanels: Record<PanelKey, boolean> = {
-  leftSidebar: true,
-  noteList: true,
+  navigation: true,
   editor: true,
   preview: true,
   taskPanel: true,
@@ -109,8 +100,7 @@ export const useLayoutStore = create<LayoutState>()(
       // 初始状态
       panels: { ...defaultPanels },
       panelWidths: {
-        leftSidebar: defaultPanelConfigs.leftSidebar.width,
-        noteList: defaultPanelConfigs.noteList.width,
+        navigation: defaultPanelConfigs.navigation.width,
         editor: defaultPanelConfigs.editor.width,
         preview: defaultPanelConfigs.preview.width,
         taskPanel: defaultPanelConfigs.taskPanel.width,
@@ -163,33 +153,12 @@ export const useLayoutStore = create<LayoutState>()(
         set({
           panels: { ...defaultPanels },
           panelWidths: {
-            leftSidebar: defaultPanelConfigs.leftSidebar.width,
-            noteList: defaultPanelConfigs.noteList.width,
+            navigation: defaultPanelConfigs.navigation.width,
             editor: defaultPanelConfigs.editor.width,
             preview: defaultPanelConfigs.preview.width,
             taskPanel: defaultPanelConfigs.taskPanel.width,
           },
         });
-      },
-
-      // 打开所有面板
-      openAllPanels: () => {
-        set((state) => ({
-          panels: Object.keys(state.panels).reduce((acc, key) => {
-            acc[key as PanelKey] = true;
-            return acc;
-          }, {} as Record<PanelKey, boolean>),
-        }));
-      },
-
-      // 关闭所有面板
-      closeAllPanels: () => {
-        set((state) => ({
-          panels: Object.keys(state.panels).reduce((acc, key) => {
-            acc[key as PanelKey] = false;
-            return acc;
-          }, {} as Record<PanelKey, boolean>),
-        }));
       },
 
       // 获取面板状态
@@ -204,6 +173,11 @@ export const useLayoutStore = create<LayoutState>()(
           return state.panelWidths[key];
         }
         return defaultPanelConfigs[key].collapsedWidth;
+      },
+
+      // 获取面板编号
+      getPanelIndex: (key: PanelKey) => {
+        return defaultPanelConfigs[key].index;
       },
     }),
     {

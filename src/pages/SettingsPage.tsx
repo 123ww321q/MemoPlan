@@ -304,16 +304,23 @@ export default function SettingsPage({ isOpen, onClose }: SettingsPageProps) {
                               className="w-32"
                             />
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm">背景不透明度</span>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">背景不透明度</span>
+                              <span className="text-sm font-medium text-primary">{settings.appearance.backgroundOpacity}%</span>
+                            </div>
                             <input
                               type="range"
-                              min={10}
+                              min={0}
                               max={100}
                               value={settings.appearance.backgroundOpacity}
                               onChange={(e) => updateAppearanceSettings({ backgroundOpacity: parseInt(e.target.value) })}
-                              className="w-32"
+                              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary"
                             />
+                            <div className="flex justify-between text-xs text-slate-400">
+                              <span>0% (完全透明)</span>
+                              <span>100% (完全不透明)</span>
+                            </div>
                           </div>
                         </>
                       )}
