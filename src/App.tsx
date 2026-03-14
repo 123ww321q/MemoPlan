@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore, themeColors } from './stores/settingsStore';
 import { useNoteStore } from './stores/noteStore';
@@ -12,19 +12,29 @@ import TaskPanel from './components/TaskPanel';
 import SettingsPage from './pages/SettingsPage';
 import TrashPage from './pages/TrashPage';
 import SearchPage from './pages/SearchPage';
+import NoteGraph from './components/NoteGraph';
+import SyncSettings from './components/SyncSettings';
+import TagManager from './components/TagManager';
+import ImportDialog from './components/ImportDialog';
+import ToastContainer, { ToastMessage, setToastHandlers } from './components/Toast';
 import { ViewType } from './types';
 
 function App() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { settings, loadSettings } = useSettingsStore();
-  const { init: initNotes, canUndo, canRedo, undo, redo, addNote } = useNoteStore();
+  const { init: initNotes, canUndo, canRedo, undo, redo, addNote, setCurrentNote } = useNoteStore();
   const { init: initTasks } = useTaskStore();
-  
+
   const [currentView, setCurrentView] = useState<ViewType>('all');
   const [showSettings, setShowSettings] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showGraph, setShowGraph] = useState(false);
+  const [showSync, setShowSync] = useState(false);
+  const [showTagManager, setShowTagManager] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // 初始化数据库和加载数据
   useEffect(() => {
@@ -111,6 +121,28 @@ function App() {
     root.style.setProperty('--primary-dark', color.dark);
   }, [settings.appearance.themeColor, isInitialized]);
 
+  // Toast 处理函数
+  const addToast = useCallback((toast: Omit<ToastMessage, 'id'>) => {
+    const id = crypto.randomUUID();
+    setToasts(prev => [...prev, { ...toast, id }]);
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // 设置 Toast 处理程序
+  useEffect(() => {
+    setToastHandlers({ add: addToast, remove: removeToast });
+  }, [addToast, removeToast]);
+
+  // 处理从图谱选择笔记
+  const handleSelectNoteFromGraph = useCallback((noteId: string) => {
+    setCurrentNote(noteId);
+    setShowGraph(false);
+    addToast({ type: 'success', message: t('toast.noteOpened'), duration: 2000 });
+  }, [setCurrentNote, addToast, t]);
+
   // 键盘快捷键
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -134,6 +166,16 @@ function App() {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'f') {
         e.preventDefault();
         setShowSearch(true);
+      }
+      // Ctrl/Cmd + Shift + G 打开图谱
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'g') {
+        e.preventDefault();
+        setShowGraph(true);
+      }
+      // Ctrl/Cmd + Shift + T 打开标签管理器
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 't') {
+        e.preventDefault();
+        setShowTagManager(true);
       }
     };
 
@@ -205,10 +247,14 @@ function App() {
         }}
       />
 
-      <Header 
+      <Header
         onOpenSettings={() => setShowSettings(true)}
         onOpenTrash={() => setShowTrash(true)}
         onOpenSearch={() => setShowSearch(true)}
+        onOpenGraph={() => setShowGraph(true)}
+        onOpenSync={() => setShowSync(true)}
+        onOpenTags={() => setShowTagManager(true)}
+        onOpenImport={() => setShowImport(true)}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
@@ -251,6 +297,38 @@ function App() {
         isOpen={showSearch}
         onClose={() => setShowSearch(false)}
       />
+
+      {/* 笔记图谱 */}
+      <NoteGraph
+        isOpen={showGraph}
+        onClose={() => setShowGraph(false)}
+        onSelectNote={handleSelectNoteFromGraph}
+      />
+
+      {/* 同步设置 */}
+      <SyncSettings
+        isOpen={showSync}
+        onClose={() => setShowSync(false)}
+      />
+
+      {/* 标签管理器 */}
+      <TagManager
+        isOpen={showTagManager}
+        onClose={() => setShowTagManager(false)}
+        onSelectTag={(tag) => {
+          setShowTagManager(false);
+          addToast({ type: 'info', message: `已选择标签: ${tag}`, duration: 2000 });
+        }}
+      />
+
+      {/* 导入对话框 */}
+      <ImportDialog
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+      />
+
+      {/* Toast 通知 */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   );
 }

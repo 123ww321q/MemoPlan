@@ -6,13 +6,17 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onOpenTrash: () => void;
   onOpenSearch: () => void;
+  onOpenGraph?: () => void;
+  onOpenSync?: () => void;
+  onOpenTags?: () => void;
+  onOpenImport?: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
 }
 
-export default function Header({ onOpenSettings, onOpenTrash, onOpenSearch, canUndo, canRedo, onUndo, onRedo }: HeaderProps) {
+export default function Header({ onOpenSettings, onOpenTrash, onOpenSearch, onOpenGraph, onOpenSync, onOpenTags, onOpenImport, canUndo, canRedo, onUndo, onRedo }: HeaderProps) {
   const { t } = useTranslation();
   const { addNote, setCurrentNote } = useNoteStore();
 
@@ -104,14 +108,46 @@ export default function Header({ onOpenSettings, onOpenTrash, onOpenSearch, canU
           <span className="material-symbols-outlined text-xl">search</span>
         </button>
         
-        <button 
+        <button
+          onClick={onOpenGraph}
+          className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          title="笔记图谱 (Ctrl+Shift+G)"
+        >
+          <span className="material-symbols-outlined text-xl">hub</span>
+        </button>
+
+        <button
+          onClick={onOpenTags}
+          className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          title="标签管理 (Ctrl+Shift+T)"
+        >
+          <span className="material-symbols-outlined text-xl">label</span>
+        </button>
+
+        <button
+          onClick={onOpenSync}
+          className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          title="数据同步"
+        >
+          <span className="material-symbols-outlined text-xl">cloud_sync</span>
+        </button>
+
+        <button
+          onClick={onOpenImport}
+          className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          title="导入笔记"
+        >
+          <span className="material-symbols-outlined text-xl">upload_file</span>
+        </button>
+
+        <button
           onClick={onOpenTrash}
           className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
           title="回收站"
         >
           <span className="material-symbols-outlined text-xl">delete_outline</span>
         </button>
-        
+
         <button 
           onClick={onOpenSettings}
           className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"

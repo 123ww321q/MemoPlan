@@ -4,6 +4,8 @@ import { useNoteStore } from '../stores/noteStore';
 import { useTaskStore } from '../stores/taskStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { marked } from 'marked';
+import { linkService } from '../services/linkService';
+import BacklinkPanel from './BacklinkPanel';
 
 // 配置 marked 支持表格和任务列表
 marked.setOptions({
@@ -24,7 +26,7 @@ marked.use({ renderer });
 
 export default function Editor() {
   const { t } = useTranslation();
-  const { getCurrentNote, updateNote } = useNoteStore();
+  const { getCurrentNote, updateNote, setCurrentNote, notes } = useNoteStore();
   const { convertMarkdownToTasks } = useTaskStore();
   useSettingsStore();
   const currentNote = getCurrentNote();
@@ -163,13 +165,28 @@ export default function Editor() {
     }
   };
 
-  // 渲染 Markdown 内容
+  // 渲染 Markdown 内容（支持双向链接）
   const renderMarkdown = (text: string) => {
     try {
-      return marked(text);
+      // 先处理双向链接
+      const linkedContent = linkService.renderLinkedContent(text, notes);
+      return marked(linkedContent);
     } catch (error) {
       console.error('Markdown 渲染错误:', error);
       return text;
+    }
+  };
+
+  // 处理预览区域点击事件（用于双向链接跳转）
+  const handlePreviewClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const link = target.closest('.wiki-link') as HTMLAnchorElement;
+    if (link) {
+      e.preventDefault();
+      const noteId = link.dataset.noteId;
+      if (noteId) {
+        setCurrentNote(noteId);
+      }
     }
   };
 
@@ -300,9 +317,19 @@ export default function Editor() {
             className="flex-1 p-6 overflow-y-auto prose dark:prose-invert max-w-none bg-white dark:bg-slate-900/50"
             style={{ width: `${100 - editorWidth}%` }}
             dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+            onClick={handlePreviewClick}
           />
         )}
       </div>
+
+      {/* 反向链接面板 */}
+      {currentNote && (
+        <BacklinkPanel
+          noteId={currentNote.id}
+          noteTitle={currentNote.title}
+          onSelectNote={setCurrentNote}
+        />
+      )}
     </section>
   );
 }

@@ -37,7 +37,37 @@
     "selectOrCreate": "选择或创建一个笔记",
     "startWriting": "开始写作...",
     "hidePreview": "隐藏预览",
-    "showPreview": "显示预览"
+    "showPreview": "显示预览",
+    "backlinks": "反向链接",
+    "unlinkedMentions": "未链接引用",
+    "noBacklinks": "暂无反向链接",
+    "unlinked": "未链接"
+  },
+  "graph": {
+    "title": "笔记图谱",
+    "noteCount": "{{count}} 个笔记",
+    "edgeCount": "{{count}} 个连接",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "resetView": "重置视图",
+    "normalNote": "普通笔记",
+    "selectedNote": "选中笔记",
+    "pinnedNote": "置顶笔记",
+    "favoriteNote": "收藏笔记",
+    "hint": "滚轮缩放 • 拖拽移动 • 点击选择"
+  },
+  "toast": {
+    "noteOpened": "笔记已打开",
+    "noteCreated": "笔记已创建",
+    "noteDeleted": "笔记已删除",
+    "noteRestored": "笔记已恢复",
+    "syncSuccess": "同步成功",
+    "syncError": "同步失败",
+    "backupSuccess": "备份成功",
+    "backupError": "备份失败",
+    "exportSuccess": "导出成功",
+    "importSuccess": "导入成功",
+    "settingsSaved": "设置已保存"
   },
   "tasks": {
     "title": "任务",

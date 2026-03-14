@@ -37,7 +37,37 @@
     "selectOrCreate": "Select or create a note",
     "startWriting": "Start writing...",
     "hidePreview": "Hide Preview",
-    "showPreview": "Show Preview"
+    "showPreview": "Show Preview",
+    "backlinks": "Backlinks",
+    "unlinkedMentions": "Unlinked Mentions",
+    "noBacklinks": "No backlinks yet",
+    "unlinked": "Unlinked"
+  },
+  "graph": {
+    "title": "Note Graph",
+    "noteCount": "{{count}} notes",
+    "edgeCount": "{{count}} connections",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "resetView": "Reset View",
+    "normalNote": "Normal Note",
+    "selectedNote": "Selected Note",
+    "pinnedNote": "Pinned Note",
+    "favoriteNote": "Favorite Note",
+    "hint": "Scroll to zoom • Drag to move • Click to select"
+  },
+  "toast": {
+    "noteOpened": "Note opened",
+    "noteCreated": "Note created",
+    "noteDeleted": "Note deleted",
+    "noteRestored": "Note restored",
+    "syncSuccess": "Sync successful",
+    "syncError": "Sync failed",
+    "backupSuccess": "Backup successful",
+    "backupError": "Backup failed",
+    "exportSuccess": "Export successful",
+    "importSuccess": "Import successful",
+    "settingsSaved": "Settings saved"
   },
   "tasks": {
     "title": "Tasks",
