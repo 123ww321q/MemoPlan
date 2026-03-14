@@ -8,6 +8,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import NoteList from './components/NoteList';
 import Editor from './components/Editor';
+import Preview from './components/Preview';
 import TaskPanel from './components/TaskPanel';
 import WorkbenchLayout from './components/WorkbenchLayout';
 import SettingsPage from './pages/SettingsPage';
@@ -266,7 +267,7 @@ function App() {
         navigation={<Sidebar currentView={currentView} onViewChange={setCurrentView} />}
         noteList={<NoteList currentView={currentView} />}
         editor={<Editor />}
-        preview={<div className="h-full overflow-auto p-4">预览区域</div>}
+        preview={<Preview />}
         taskPanel={<TaskPanel />}
       />
 
