@@ -6,7 +6,6 @@ mod db;
 use db::{Database, AppState, Note, Task, Tag};
 use tauri::{CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, GlobalShortcutManager, WindowEvent};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize)]
 struct MigrationData {

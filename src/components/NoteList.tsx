@@ -3,6 +3,7 @@ import { useNoteStore } from '../stores/noteStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { ViewType } from '../types';
 import { format } from 'date-fns';
+import ConfirmDialog from './ConfirmDialog';
 
 interface ContextMenuState {
   show: boolean;
@@ -17,14 +18,14 @@ interface NoteListProps {
 
 // 笔记背景颜色选项
 const noteColors = [
-  { name: 'default', bg: 'bg-white dark:bg-slate-800', border: 'border-slate-200 dark:border-slate-700' },
-  { name: 'red', bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-200 dark:border-red-800' },
-  { name: 'orange', bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200 dark:border-orange-800' },
-  { name: 'yellow', bg: 'bg-yellow-50 dark:bg-yellow-900/20', border: 'border-yellow-200 dark:border-yellow-800' },
-  { name: 'green', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-800' },
-  { name: 'blue', bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800' },
-  { name: 'purple', bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-800' },
-  { name: 'pink', bg: 'bg-pink-50 dark:bg-pink-900/20', border: 'border-pink-200 dark:border-pink-800' },
+  { name: 'default', bg: 'bg-white dark:bg-slate-800', border: 'border-slate-200 dark:border-slate-700', preview: 'bg-slate-200' },
+  { name: 'red', bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-200 dark:border-red-800', preview: 'bg-red-400' },
+  { name: 'orange', bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200 dark:border-orange-800', preview: 'bg-orange-400' },
+  { name: 'yellow', bg: 'bg-yellow-50 dark:bg-yellow-900/20', border: 'border-yellow-200 dark:border-yellow-800', preview: 'bg-yellow-400' },
+  { name: 'green', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-800', preview: 'bg-green-400' },
+  { name: 'blue', bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800', preview: 'bg-blue-400' },
+  { name: 'purple', bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-800', preview: 'bg-purple-400' },
+  { name: 'pink', bg: 'bg-pink-50 dark:bg-pink-900/20', border: 'border-pink-200 dark:border-pink-800', preview: 'bg-pink-400' },
 ];
 
 export default function NoteList({ currentView = 'all' }: NoteListProps) {
@@ -39,6 +40,8 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
   // 根据当前视图筛选笔记
@@ -114,9 +117,9 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
   };
 
   // 保存重命名
-  const handleSaveRename = () => {
+  const handleSaveRename = async () => {
     if (editingNoteId && editTitle.trim()) {
-      updateNote(editingNoteId, { title: editTitle.trim() });
+      await updateNote(editingNoteId, { title: editTitle.trim() });
     }
     setEditingNoteId(null);
     setEditTitle('');
@@ -128,44 +131,64 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
     setEditTitle('');
   };
 
-  // 删除笔记
-  const handleDelete = () => {
+  // 删除笔记 - 先显示确认对话框
+  const handleDeleteClick = () => {
     if (contextMenu.noteId) {
-      if (!settings.general.confirmDelete || confirm('确定要删除这个笔记吗？')) {
+      if (settings.general.confirmDelete) {
+        // 显示确认对话框
+        setNoteToDelete(contextMenu.noteId);
+        setShowDeleteConfirm(true);
+      } else {
+        // 直接删除
         deleteNote(contextMenu.noteId);
       }
     }
     setContextMenu({ show: false, x: 0, y: 0, noteId: null });
   };
 
+  // 确认删除
+  const handleConfirmDelete = async () => {
+    if (noteToDelete) {
+      await deleteNote(noteToDelete);
+      setNoteToDelete(null);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  // 取消删除
+  const handleCancelDelete = () => {
+    setNoteToDelete(null);
+    setShowDeleteConfirm(false);
+  };
+
   // 置顶/取消置顶
-  const handleTogglePin = () => {
+  const handleTogglePin = async () => {
     if (contextMenu.noteId) {
       const note = notes.find(n => n.id === contextMenu.noteId);
       if (note) {
-        updateNote(contextMenu.noteId, { isPinned: !note.isPinned });
+        await updateNote(contextMenu.noteId, { isPinned: !note.isPinned });
       }
     }
     setContextMenu({ show: false, x: 0, y: 0, noteId: null });
   };
 
   // 收藏/取消收藏
-  const handleToggleFavorite = () => {
+  const handleToggleFavorite = async () => {
     if (contextMenu.noteId) {
       const note = notes.find(n => n.id === contextMenu.noteId);
       if (note) {
-        updateNote(contextMenu.noteId, { isFavorite: !note.isFavorite });
+        await updateNote(contextMenu.noteId, { isFavorite: !note.isFavorite });
       }
     }
     setContextMenu({ show: false, x: 0, y: 0, noteId: null });
   };
 
   // 归档/取消归档
-  const handleToggleArchive = () => {
+  const handleToggleArchive = async () => {
     if (contextMenu.noteId) {
       const note = notes.find(n => n.id === contextMenu.noteId);
       if (note) {
-        updateNote(contextMenu.noteId, { isArchived: !note.isArchived });
+        await updateNote(contextMenu.noteId, { isArchived: !note.isArchived });
       }
     }
     setContextMenu({ show: false, x: 0, y: 0, noteId: null });
@@ -241,9 +264,9 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
   };
 
   // 更改笔记颜色
-  const handleChangeColor = (colorName: string) => {
+  const handleChangeColor = async (colorName: string) => {
     if (contextMenu.noteId) {
-      updateNote(contextMenu.noteId, { color: colorName });
+      await updateNote(contextMenu.noteId, { color: colorName });
     }
     setContextMenu({ show: false, x: 0, y: 0, noteId: null });
   };
@@ -442,7 +465,7 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
                 <button
                   key={color.name}
                   onClick={() => handleChangeColor(color.name)}
-                  className={`w-5 h-5 rounded-full border-2 ${color.bg} ${color.border} hover:scale-110 transition-transform`}
+                  className={`w-5 h-5 rounded-full border-2 border-slate-300 hover:scale-110 transition-transform ${color.preview}`}
                   title={color.name}
                 />
               ))}
@@ -451,7 +474,7 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
           
           <div className="border-t border-slate-200 dark:border-slate-700 my-1"></div>
           <button
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-base">delete</span>
@@ -459,6 +482,18 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
           </button>
         </div>
       )}
+
+      {/* 删除确认对话框 */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="确认删除"
+        message="确定要删除这个笔记吗？删除后可以在回收站中恢复。"
+        confirmText="删除"
+        cancelText="取消"
+        type="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </main>
   );
 }

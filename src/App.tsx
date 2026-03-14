@@ -220,8 +220,6 @@ function App() {
           <Sidebar 
             currentView={currentView}
             onViewChange={setCurrentView}
-            onOpenSettings={() => setShowSettings(true)}
-            onOpenTrash={() => setShowTrash(true)}
           />
         )}
         

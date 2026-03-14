@@ -201,7 +201,7 @@ export default function SettingsPage({ isOpen, onClose }: SettingsPageProps) {
                 
                 <div className="space-y-4">
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                    <p className="font-medium mb-3">主题模式</p>
+                    <p className="font-medium mb-3 text-slate-900 dark:text-white">主题模式</p>
                     <div className="flex gap-3">
                       {(['light', 'dark', 'auto'] as const).map((theme) => (
                         <button
@@ -213,10 +213,10 @@ export default function SettingsPage({ isOpen, onClose }: SettingsPageProps) {
                               : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
                           }`}
                         >
-                          <span className="material-symbols-outlined">
+                          <span className="material-symbols-outlined text-slate-700 dark:text-slate-300">
                             {theme === 'light' ? 'light_mode' : theme === 'dark' ? 'dark_mode' : 'brightness_auto'}
                           </span>
-                          <span className="text-sm font-medium">
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                             {theme === 'light' ? '浅色' : theme === 'dark' ? '深色' : '自动'}
                           </span>
                         </button>
@@ -225,7 +225,7 @@ export default function SettingsPage({ isOpen, onClose }: SettingsPageProps) {
                   </div>
 
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                    <p className="font-medium mb-3">主题配色</p>
+                    <p className="font-medium mb-3 text-slate-900 dark:text-white">主题配色</p>
                     <div className="grid grid-cols-4 gap-3">
                       {(Object.keys(themeColors) as ThemeColor[]).map((color) => (
                         <button
@@ -241,7 +241,7 @@ export default function SettingsPage({ isOpen, onClose }: SettingsPageProps) {
                             className="w-10 h-10 rounded-full shadow-md"
                             style={{ backgroundColor: themeColors[color].primary }}
                           />
-                          <span className="text-xs font-medium">{themeColors[color].name}</span>
+                          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{themeColors[color].name}</span>
                         </button>
                       ))}
                     </div>

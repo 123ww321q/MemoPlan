@@ -56,7 +56,9 @@ impl Database {
         
         // Ensure directory exists
         if let Some(parent) = db_path.parent() {
-            fs::create_dir_all(parent)?;
+            fs::create_dir_all(parent).map_err(|e| {
+                rusqlite::Error::InvalidPath(std::path::PathBuf::from(format!("Failed to create directory: {}", e)))
+            })?;
         }
         
         let conn = Connection::open(&db_path)?;

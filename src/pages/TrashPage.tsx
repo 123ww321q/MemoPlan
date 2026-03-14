@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNoteStore } from '../stores/noteStore';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface TrashPageProps {
   isOpen: boolean;
@@ -12,6 +13,9 @@ export default function TrashPage({ isOpen, onClose }: TrashPageProps) {
   const { deletedNotes, restoreNote, permanentlyDeleteNote, emptyTrash } = useNoteStore();
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
   const [showConfirmEmpty, setShowConfirmEmpty] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
+  const [showConfirmDeleteSelected, setShowConfirmDeleteSelected] = useState(false);
 
   if (!isOpen) return null;
 
@@ -33,8 +37,8 @@ export default function TrashPage({ isOpen, onClose }: TrashPageProps) {
     }
   };
 
-  const handleRestore = (id: string) => {
-    restoreNote(id);
+  const handleRestore = async (id: string) => {
+    await restoreNote(id);
     setSelectedNotes(prev => {
       const newSet = new Set(prev);
       newSet.delete(id);
@@ -42,34 +46,51 @@ export default function TrashPage({ isOpen, onClose }: TrashPageProps) {
     });
   };
 
-  const handleRestoreSelected = () => {
-    selectedNotes.forEach(id => restoreNote(id));
+  const handleRestoreSelected = async () => {
+    for (const id of selectedNotes) {
+      await restoreNote(id);
+    }
     setSelectedNotes(new Set());
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('确定要永久删除这个笔记吗？此操作不可撤销。')) {
-      permanentlyDeleteNote(id);
+  // 显示删除确认对话框
+  const handleDeleteClick = (id: string) => {
+    setNoteToDelete(id);
+    setShowConfirmDelete(true);
+  };
+
+  // 确认删除单个笔记
+  const handleConfirmDelete = async () => {
+    if (noteToDelete) {
+      await permanentlyDeleteNote(noteToDelete);
       setSelectedNotes(prev => {
         const newSet = new Set(prev);
-        newSet.delete(id);
+        newSet.delete(noteToDelete);
         return newSet;
       });
+      setNoteToDelete(null);
+      setShowConfirmDelete(false);
     }
   };
 
-  const handleDeleteSelected = () => {
-    if (confirm(`确定要永久删除选中的 ${selectedNotes.size} 个笔记吗？此操作不可撤销。`)) {
-      selectedNotes.forEach(id => permanentlyDeleteNote(id));
-      setSelectedNotes(new Set());
-    }
+  // 显示批量删除确认对话框
+  const handleDeleteSelectedClick = () => {
+    setShowConfirmDeleteSelected(true);
   };
 
-  const handleEmptyTrash = () => {
-    if (confirm('确定要清空回收站吗？所有已删除的笔记将被永久删除，此操作不可撤销。')) {
-      emptyTrash();
-      setShowConfirmEmpty(false);
+  // 确认批量删除
+  const handleConfirmDeleteSelected = async () => {
+    for (const id of selectedNotes) {
+      await permanentlyDeleteNote(id);
     }
+    setSelectedNotes(new Set());
+    setShowConfirmDeleteSelected(false);
+  };
+
+  // 确认清空回收站
+  const handleConfirmEmpty = async () => {
+    await emptyTrash();
+    setShowConfirmEmpty(false);
   };
 
   // 获取笔记预览文本
@@ -137,7 +158,7 @@ export default function TrashPage({ isOpen, onClose }: TrashPageProps) {
                     恢复选中
                   </button>
                   <button
-                    onClick={handleDeleteSelected}
+                    onClick={handleDeleteSelectedClick}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                   >
                     <span className="material-symbols-outlined text-base">delete_forever</span>
@@ -209,7 +230,7 @@ export default function TrashPage({ isOpen, onClose }: TrashPageProps) {
                       <span className="material-symbols-outlined">restore</span>
                     </button>
                     <button
-                      onClick={() => handleDelete(note.id)}
+                      onClick={() => handleDeleteClick(note.id)}
                       className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                       title="永久删除"
                     >
@@ -223,37 +244,41 @@ export default function TrashPage({ isOpen, onClose }: TrashPageProps) {
         </div>
       </div>
 
-      {/* 清空确认对话框 */}
-      {showConfirmEmpty && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                <span className="material-symbols-outlined text-red-500">warning</span>
-              </div>
-              <div>
-                <h4 className="text-lg font-bold">确认清空回收站？</h4>
-                <p className="text-sm text-slate-500">{deletedNotes.length} 个笔记将被永久删除</p>
-              </div>
-            </div>
-            <p className="text-sm text-slate-500 mb-4">此操作不可撤销，删除的笔记将无法恢复。</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowConfirmEmpty(false)}
-                className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleEmptyTrash}
-                className="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
-              >
-                确认清空
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 删除单个笔记确认对话框 */}
+      <ConfirmDialog
+        isOpen={showConfirmDelete}
+        title="确认永久删除"
+        message="确定要永久删除这个笔记吗？此操作不可撤销，笔记将无法恢复。"
+        confirmText="永久删除"
+        cancelText="取消"
+        type="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => { setShowConfirmDelete(false); setNoteToDelete(null); }}
+      />
+
+      {/* 批量删除确认对话框 */}
+      <ConfirmDialog
+        isOpen={showConfirmDeleteSelected}
+        title="确认批量删除"
+        message={`确定要永久删除选中的 ${selectedNotes.size} 个笔记吗？此操作不可撤销。`}
+        confirmText="永久删除"
+        cancelText="取消"
+        type="danger"
+        onConfirm={handleConfirmDeleteSelected}
+        onCancel={() => setShowConfirmDeleteSelected(false)}
+      />
+
+      {/* 清空回收站确认对话框 */}
+      <ConfirmDialog
+        isOpen={showConfirmEmpty}
+        title="确认清空回收站"
+        message={`确定要清空回收站吗？${deletedNotes.length} 个笔记将被永久删除，此操作不可撤销。`}
+        confirmText="清空回收站"
+        cancelText="取消"
+        type="danger"
+        onConfirm={handleConfirmEmpty}
+        onCancel={() => setShowConfirmEmpty(false)}
+      />
     </div>
   );
 }

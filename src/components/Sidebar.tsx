@@ -5,12 +5,10 @@ import { ViewType } from '../types';
 interface SidebarProps {
   currentView: ViewType;
   onViewChange: (view: ViewType) => void;
-  onOpenSettings: () => void;
-  onOpenTrash: () => void;
 }
 
-export default function Sidebar({ currentView, onViewChange, onOpenSettings, onOpenTrash }: SidebarProps) {
-  const { addNote, notes, setCurrentNote, deletedNotes } = useNoteStore();
+export default function Sidebar({ currentView, onViewChange }: SidebarProps) {
+  const { addNote, notes, setCurrentNote } = useNoteStore();
   const { tasks } = useTaskStore();
 
   const handleNewNote = async () => {
@@ -32,12 +30,7 @@ export default function Sidebar({ currentView, onViewChange, onOpenSettings, onO
     // 根据不同视图筛选笔记
     switch (view) {
       case 'today':
-        const todayTasks = tasks.filter(t => {
-          if (!t.dueDate) return false;
-          const today = new Date().toDateString();
-          return new Date(t.dueDate).toDateString() === today;
-        });
-        if (todayTasks.length > 0 && notes.length > 0) {
+        if (notes.length > 0) {
           setCurrentNote(notes[0].id);
         }
         break;
@@ -124,34 +117,6 @@ export default function Sidebar({ currentView, onViewChange, onOpenSettings, onO
           </button>
         ))}
       </nav>
-
-      {/* 底部功能 */}
-      <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-1">
-        {/* 回收站 */}
-        <button
-          onClick={onOpenTrash}
-          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer text-left hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-slate-500">delete_outline</span>
-            <span className="text-sm text-slate-600 dark:text-slate-400">回收站</span>
-          </div>
-          {deletedNotes.length > 0 && (
-            <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">
-              {deletedNotes.length}
-            </span>
-          )}
-        </button>
-
-        {/* 设置 */}
-        <button
-          onClick={onOpenSettings}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer text-left hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <span className="material-symbols-outlined text-slate-500">settings</span>
-          <span className="text-sm text-slate-600 dark:text-slate-400">设置</span>
-        </button>
-      </div>
     </aside>
   );
 }
