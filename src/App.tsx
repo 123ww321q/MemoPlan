@@ -9,6 +9,7 @@ import Sidebar from './components/Sidebar';
 import NoteList from './components/NoteList';
 import Editor from './components/Editor';
 import TaskPanel from './components/TaskPanel';
+import ResizableLayout from './components/ResizableLayout';
 import SettingsPage from './pages/SettingsPage';
 import TrashPage from './pages/TrashPage';
 import SearchPage from './pages/SearchPage';
@@ -260,25 +261,13 @@ function App() {
         onUndo={undo}
         onRedo={redo}
       />
-      
-      <div className="flex flex-1 overflow-hidden">
-        {settings.appearance.sidebarVisible && (
-          <Sidebar 
-            currentView={currentView}
-            onViewChange={setCurrentView}
-          />
-        )}
-        
-        {settings.appearance.noteListVisible && (
-          <NoteList currentView={currentView} />
-        )}
-        
-        <Editor />
-        
-        {settings.appearance.taskPanelVisible && (
-          <TaskPanel />
-        )}
-      </div>
+
+      <ResizableLayout
+        sidebar={<Sidebar currentView={currentView} onViewChange={setCurrentView} />}
+        noteList={<NoteList currentView={currentView} />}
+        editor={<Editor />}
+        taskPanel={<TaskPanel />}
+      />
 
       {/* 设置页面 */}
       <SettingsPage 
