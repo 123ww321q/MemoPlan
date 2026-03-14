@@ -15,116 +15,76 @@ export interface PanelConfig {
   width: number;
   minWidth: number;
   maxWidth: number;
-  collapsedWidth: number;
   icon: string;
   title: string;
   position: 'left' | 'center' | 'right';
-  collapseBehavior: 'narrow' | 'hide';
 }
 
-// 默认面板配置
+// 默认面板配置 - 调整宽度使布局更紧凑
 export const defaultPanelConfigs: Record<PanelKey, PanelConfig> = {
   navigation: {
     index: 1,
-    width: 200,
-    minWidth: 160,
-    maxWidth: 280,
-    collapsedWidth: 48,
+    width: 160,   // 变窄
+    minWidth: 140,
+    maxWidth: 200,
     icon: 'menu',
     title: '导航',
     position: 'left',
-    collapseBehavior: 'narrow',
   },
   noteList: {
     index: 2,
-    width: 280,
-    minWidth: 220,
-    maxWidth: 400,
-    collapsedWidth: 48,
+    width: 220,   // 变窄
+    minWidth: 180,
+    maxWidth: 300,
     icon: 'list',
     title: '笔记',
     position: 'left',
-    collapseBehavior: 'narrow',
   },
   editor: {
     index: 3,
-    width: 500,
-    minWidth: 300,
+    width: 600,   // 给撰写更多空间
+    minWidth: 400,
     maxWidth: 800,
-    collapsedWidth: 0,
     icon: 'edit',
     title: '撰写',
     position: 'center',
-    collapseBehavior: 'hide',
   },
   preview: {
     index: 4,
-    width: 500,
-    minWidth: 300,
-    maxWidth: 800,
-    collapsedWidth: 0,
+    width: 500,   // 预览区域
+    minWidth: 350,
+    maxWidth: 700,
     icon: 'preview',
     title: '预览',
     position: 'center',
-    collapseBehavior: 'hide',
   },
   taskPanel: {
     index: 5,
-    width: 320,
-    minWidth: 260,
-    maxWidth: 450,
-    collapsedWidth: 0,
+    width: 200,   // 变窄
+    minWidth: 160,
+    maxWidth: 280,
     icon: 'task_alt',
     title: '任务',
     position: 'right',
-    collapseBehavior: 'hide',
   },
 };
 
 interface LayoutState {
-  panels: Record<PanelKey, boolean>;
   panelWidths: Record<PanelKey, number>;
-  togglePanel: (key: PanelKey) => void;
-  openPanel: (key: PanelKey) => void;
-  closePanel: (key: PanelKey) => void;
   setPanelWidth: (key: PanelKey, width: number) => void;
   resetLayout: () => void;
-  isPanelOpen: (key: PanelKey) => boolean;
   getPanelWidth: (key: PanelKey) => number;
 }
-
-const defaultPanels: Record<PanelKey, boolean> = {
-  navigation: true,
-  noteList: true,
-  editor: true,
-  preview: true,
-  taskPanel: true,
-};
 
 export const useLayoutStore = create<LayoutState>()(
   persist(
     (set, get) => ({
-      panels: { ...defaultPanels },
       panelWidths: {
         navigation: defaultPanelConfigs.navigation.width,
         noteList: defaultPanelConfigs.noteList.width,
         editor: defaultPanelConfigs.editor.width,
         preview: defaultPanelConfigs.preview.width,
         taskPanel: defaultPanelConfigs.taskPanel.width,
-      },
-
-      togglePanel: (key: PanelKey) => {
-        set((state) => ({
-          panels: { ...state.panels, [key]: !state.panels[key] },
-        }));
-      },
-
-      openPanel: (key: PanelKey) => {
-        set((state) => ({ panels: { ...state.panels, [key]: true } }));
-      },
-
-      closePanel: (key: PanelKey) => {
-        set((state) => ({ panels: { ...state.panels, [key]: false } }));
       },
 
       setPanelWidth: (key: PanelKey, width: number) => {
@@ -137,7 +97,6 @@ export const useLayoutStore = create<LayoutState>()(
 
       resetLayout: () => {
         set({
-          panels: { ...defaultPanels },
           panelWidths: {
             navigation: defaultPanelConfigs.navigation.width,
             noteList: defaultPanelConfigs.noteList.width,
@@ -148,20 +107,13 @@ export const useLayoutStore = create<LayoutState>()(
         });
       },
 
-      isPanelOpen: (key: PanelKey) => get().panels[key],
-
       getPanelWidth: (key: PanelKey) => {
-        const state = get();
-        const config = defaultPanelConfigs[key];
-        if (state.panels[key]) {
-          return state.panelWidths[key];
-        }
-        return config.collapsedWidth;
+        return get().panelWidths[key];
       },
     }),
     {
       name: 'memoplan-layout-storage',
-      partialize: (state) => ({ panels: state.panels, panelWidths: state.panelWidths }),
+      partialize: (state) => ({ panelWidths: state.panelWidths }),
     }
   )
 );
