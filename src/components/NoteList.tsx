@@ -39,14 +39,13 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
   });
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
   // 根据当前视图筛选笔记
   const filteredNotes = useMemo(() => {
-    let result = notes;
+    let result = notes.filter(n => !n.isDeleted);
     
     // 根据视图筛选
     switch (currentView) {
@@ -70,17 +69,8 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
         break;
     }
     
-    // 根据搜索词筛选
-    if (searchQuery.trim()) {
-      result = result.filter(note => 
-        note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        note.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-    }
-    
     return result;
-  }, [notes, currentView, searchQuery]);
+  }, [notes, currentView]);
 
   // 点击外部关闭右键菜单
   useEffect(() => {
@@ -294,22 +284,8 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
 
   return (
     <main className="w-80 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 shrink-0 relative">
-      {/* 搜索栏 */}
-      <div className="p-4 space-y-4">
-        <div className="relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-            search
-          </span>
-          <input
-            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-[var(--primary-color,#ec5b13)] outline-none transition-all"
-            placeholder="搜索笔记..."
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        {/* 视图标题 */}
+      {/* 视图标题 */}
+      <div className="p-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-600 dark:text-slate-400">
             {currentView === 'all' && '全部笔记'}

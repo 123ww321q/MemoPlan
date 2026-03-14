@@ -50,6 +50,13 @@ export default function Editor() {
     }
   }, [currentNote?.id]);
 
+  // 监听笔记标题变化（从其他地方修改）
+  useEffect(() => {
+    if (currentNote && title !== currentNote.title) {
+      setTitle(currentNote.title);
+    }
+  }, [currentNote?.title]);
+
   // 处理拖拽调整宽度
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();

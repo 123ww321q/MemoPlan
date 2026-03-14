@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNoteStore } from '../stores/noteStore';
 import { syncService, AllSyncSettings, WebDAVConfig, GitConfig, LocalBackupConfig, SyncResult } from '../services/syncService';
 import { useToast } from './Toast';
+import { open } from '@tauri-apps/api/dialog';
 
 interface SyncSettingsProps {
   isOpen: boolean;
@@ -241,9 +242,20 @@ export default function SyncSettings({ isOpen, onClose }: SyncSettingsProps) {
                     className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
                   />
                   <button
-                    onClick={() => {
-                      // 打开文件夹选择对话框
-                      saveAllConfigs();
+                    onClick={async () => {
+                      try {
+                        const selected = await open({
+                          directory: true,
+                          multiple: false,
+                          title: '选择备份文件夹'
+                        });
+                        if (selected && typeof selected === 'string') {
+                          setLocalConfig({ ...localConfig, backupPath: selected });
+                          setTimeout(saveAllConfigs, 0);
+                        }
+                      } catch (error) {
+                        console.error('选择文件夹失败:', error);
+                      }
                     }}
                     className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm"
                   >
