@@ -1,159 +1,148 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// 可折叠区域类型 - 简化为5个主要区域
+// 5个区域：导航、笔记、撰写、预览、任务
 export type PanelKey = 
-  | 'navigation'     // 左侧导航+笔记列表（合并）
-  | 'editor'         // 编辑器区（撰写）
-  | 'preview'        // 预览区
-  | 'taskPanel';     // 右侧任务区
+  | 'navigation'     // 1. 左侧导航
+  | 'noteList'       // 2. 笔记列表
+  | 'editor'         // 3. 撰写
+  | 'preview'        // 4. 预览
+  | 'taskPanel';     // 5. 任务
 
 // 面板配置
 export interface PanelConfig {
-  index: number;        // 面板编号（1,2,3,4）
-  width: number;        // 展开时的宽度
-  minWidth: number;     // 最小宽度
-  maxWidth: number;     // 最大宽度
-  collapsedWidth: number; // 折叠后的宽度
-  icon: string;         // 折叠后显示的图标
-  title: string;        // 面板标题
-  position: 'left' | 'right' | 'center'; // 位置
+  index: number;
+  width: number;
+  minWidth: number;
+  maxWidth: number;
+  collapsedWidth: number; // 导航和笔记保留细窄区域，其他为0
+  icon: string;
+  title: string;
+  position: 'left' | 'center' | 'right';
+  // 折叠行为：'narrow'=保留窄条, 'hide'=完全隐藏
+  collapseBehavior: 'narrow' | 'hide';
 }
 
 // 默认面板配置
 export const defaultPanelConfigs: Record<PanelKey, PanelConfig> = {
   navigation: {
     index: 1,
-    width: 320,
-    minWidth: 260,
-    maxWidth: 450,
-    collapsedWidth: 48,
+    width: 200,
+    minWidth: 160,
+    maxWidth: 280,
+    collapsedWidth: 48, // 保留细窄区域
     icon: 'menu',
     title: '导航',
     position: 'left',
+    collapseBehavior: 'narrow',
+  },
+  noteList: {
+    index: 2,
+    width: 280,
+    minWidth: 220,
+    maxWidth: 400,
+    collapsedWidth: 48, // 保留细窄区域
+    icon: 'list',
+    title: '笔记',
+    position: 'left',
+    collapseBehavior: 'narrow',
   },
   editor: {
-    index: 2,
+    index: 3,
     width: 500,
-    minWidth: 350,
+    minWidth: 300,
     maxWidth: 800,
-    collapsedWidth: 48,
+    collapsedWidth: 0, // 完全隐藏
     icon: 'edit',
     title: '撰写',
     position: 'center',
+    collapseBehavior: 'hide',
   },
   preview: {
-    index: 3,
+    index: 4,
     width: 500,
-    minWidth: 350,
+    minWidth: 300,
     maxWidth: 800,
-    collapsedWidth: 48,
+    collapsedWidth: 0, // 完全隐藏
     icon: 'preview',
     title: '预览',
     position: 'center',
+    collapseBehavior: 'hide',
   },
   taskPanel: {
-    index: 4,
+    index: 5,
     width: 320,
     minWidth: 260,
     maxWidth: 450,
-    collapsedWidth: 48,
+    collapsedWidth: 0, // 完全隐藏
     icon: 'task_alt',
     title: '任务',
     position: 'right',
+    collapseBehavior: 'hide',
   },
 };
 
-// 布局状态接口
 interface LayoutState {
-  // 面板展开状态 (true=展开, false=折叠)
   panels: Record<PanelKey, boolean>;
-  
-  // 面板宽度配置
   panelWidths: Record<PanelKey, number>;
-  
-  // 操作函数
   togglePanel: (key: PanelKey) => void;
   openPanel: (key: PanelKey) => void;
   closePanel: (key: PanelKey) => void;
   setPanelWidth: (key: PanelKey, width: number) => void;
   resetLayout: () => void;
-  
-  // 获取面板状态
   isPanelOpen: (key: PanelKey) => boolean;
   getPanelWidth: (key: PanelKey) => number;
-  getPanelIndex: (key: PanelKey) => number;
+  getVisiblePanels: () => PanelKey[];
 }
 
-// 默认布局状态
 const defaultPanels: Record<PanelKey, boolean> = {
   navigation: true,
+  noteList: true,
   editor: true,
   preview: true,
   taskPanel: true,
 };
 
-// 创建布局状态管理
 export const useLayoutStore = create<LayoutState>()(
   persist(
     (set, get) => ({
-      // 初始状态
       panels: { ...defaultPanels },
       panelWidths: {
         navigation: defaultPanelConfigs.navigation.width,
+        noteList: defaultPanelConfigs.noteList.width,
         editor: defaultPanelConfigs.editor.width,
         preview: defaultPanelConfigs.preview.width,
         taskPanel: defaultPanelConfigs.taskPanel.width,
       },
 
-      // 切换面板状态
       togglePanel: (key: PanelKey) => {
         set((state) => ({
-          panels: {
-            ...state.panels,
-            [key]: !state.panels[key],
-          },
+          panels: { ...state.panels, [key]: !state.panels[key] },
         }));
       },
 
-      // 打开面板
       openPanel: (key: PanelKey) => {
-        set((state) => ({
-          panels: {
-            ...state.panels,
-            [key]: true,
-          },
-        }));
+        set((state) => ({ panels: { ...state.panels, [key]: true } }));
       },
 
-      // 关闭面板
       closePanel: (key: PanelKey) => {
-        set((state) => ({
-          panels: {
-            ...state.panels,
-            [key]: false,
-          },
-        }));
+        set((state) => ({ panels: { ...state.panels, [key]: false } }));
       },
 
-      // 设置面板宽度
       setPanelWidth: (key: PanelKey, width: number) => {
         const config = defaultPanelConfigs[key];
         const clampedWidth = Math.max(config.minWidth, Math.min(config.maxWidth, width));
         set((state) => ({
-          panelWidths: {
-            ...state.panelWidths,
-            [key]: clampedWidth,
-          },
+          panelWidths: { ...state.panelWidths, [key]: clampedWidth },
         }));
       },
 
-      // 重置布局
       resetLayout: () => {
         set({
           panels: { ...defaultPanels },
           panelWidths: {
             navigation: defaultPanelConfigs.navigation.width,
+            noteList: defaultPanelConfigs.noteList.width,
             editor: defaultPanelConfigs.editor.width,
             preview: defaultPanelConfigs.preview.width,
             taskPanel: defaultPanelConfigs.taskPanel.width,
@@ -161,31 +150,27 @@ export const useLayoutStore = create<LayoutState>()(
         });
       },
 
-      // 获取面板状态
-      isPanelOpen: (key: PanelKey) => {
-        return get().panels[key];
-      },
+      isPanelOpen: (key: PanelKey) => get().panels[key],
 
-      // 获取面板宽度
       getPanelWidth: (key: PanelKey) => {
         const state = get();
+        const config = defaultPanelConfigs[key];
         if (state.panels[key]) {
           return state.panelWidths[key];
         }
-        return defaultPanelConfigs[key].collapsedWidth;
+        return config.collapsedWidth;
       },
 
-      // 获取面板编号
-      getPanelIndex: (key: PanelKey) => {
-        return defaultPanelConfigs[key].index;
+      getVisiblePanels: () => {
+        const state = get();
+        return (Object.keys(state.panels) as PanelKey[]).filter(
+          (key) => state.panels[key] || defaultPanelConfigs[key].collapseBehavior === 'narrow'
+        );
       },
     }),
     {
       name: 'memoplan-layout-storage',
-      partialize: (state) => ({
-        panels: state.panels,
-        panelWidths: state.panelWidths,
-      }),
+      partialize: (state) => ({ panels: state.panels, panelWidths: state.panelWidths }),
     }
   )
 );
