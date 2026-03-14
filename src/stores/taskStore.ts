@@ -8,17 +8,17 @@ interface TaskStore {
   isLoading: boolean;
   initialized: boolean;
   init: () => Promise<void>;
-  loadTasks: () => void;
-  loadTasksByNoteId: (noteId: string) => Task[];
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  addTasks: (tasks: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>[]) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-  deleteTask: (id: string) => void;
-  deleteTasksByNoteId: (noteId: string) => void;
+  loadTasks: () => Promise<void>;
+  loadTasksByNoteId: (noteId: string) => Promise<Task[]>;
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addTasks: (tasks: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<void>;
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  deleteTasksByNoteId: (noteId: string) => Promise<void>;
   getTasksByNoteId: (noteId: string) => Task[];
-  toggleTaskComplete: (id: string) => void;
+  toggleTaskComplete: (id: string) => Promise<void>;
   // 一键生成待办
-  convertMarkdownToTasks: (markdown: string, noteId: string) => number;
+  convertMarkdownToTasks: (markdown: string, noteId: string) => Promise<number>;
 }
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
@@ -29,14 +29,14 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   init: async () => {
     if (get().initialized) return;
     await initDatabase();
-    get().loadTasks();
+    await get().loadTasks();
     set({ initialized: true });
   },
 
-  loadTasks: () => {
+  loadTasks: async () => {
     set({ isLoading: true });
     try {
-      const tasks = dbService.getTasks();
+      const tasks = await dbService.getTasks();
       set({ tasks });
     } catch (error) {
       console.error('Failed to load tasks:', error);
@@ -45,65 +45,113 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 
-  loadTasksByNoteId: (noteId: string) => {
-    return dbService.getTasksByNoteId(noteId);
-  },
-
-  addTask: (task) => {
-    const newTask = dbService.addTask(task);
-    set((state) => ({ tasks: [...state.tasks, newTask] }));
-  },
-
-  addTasks: (newTasks) => {
-    const createdTasks = dbService.addTasks(newTasks);
-    set((state) => ({ tasks: [...state.tasks, ...createdTasks] }));
-  },
-
-  updateTask: (id, updates) => {
-    const updatedTask = dbService.updateTask(id, updates);
-    if (updatedTask) {
-      set((state) => ({
-        tasks: state.tasks.map((task) =>
-          task.id === id ? updatedTask : task
-        ),
-      }));
+  loadTasksByNoteId: async (noteId: string) => {
+    try {
+      return await dbService.getTasksByNoteId(noteId);
+    } catch (error) {
+      console.error('Failed to load tasks by noteId:', error);
+      return [];
     }
   },
 
-  deleteTask: (id) => {
-    dbService.deleteTask(id);
-    set((state) => ({
-      tasks: state.tasks.filter((task) => task.id !== id),
-    }));
+  addTask: async (task) => {
+    const newTask: Task = {
+      ...task,
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    
+    try {
+      await dbService.addTask(newTask);
+      set((state) => ({ tasks: [...state.tasks, newTask] }));
+    } catch (error) {
+      console.error('Failed to add task:', error);
+    }
   },
 
-  deleteTasksByNoteId: (noteId: string) => {
-    dbService.deleteTasksByNoteId(noteId);
-    set((state) => ({
-      tasks: state.tasks.filter((task) => task.noteId !== noteId),
-    }));
+  addTasks: async (newTasks) => {
+    const createdTasks: Task[] = [];
+    
+    for (const task of newTasks) {
+      const newTask: Task = {
+        ...task,
+        id: crypto.randomUUID(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      
+      try {
+        await dbService.addTask(newTask);
+        createdTasks.push(newTask);
+      } catch (error) {
+        console.error('Failed to add task:', error);
+      }
+    }
+    
+    if (createdTasks.length > 0) {
+      set((state) => ({ tasks: [...state.tasks, ...createdTasks] }));
+    }
+  },
+
+  updateTask: async (id, updates) => {
+    const { tasks } = get();
+    const taskIndex = tasks.findIndex(t => t.id === id);
+    if (taskIndex === -1) return;
+
+    const updatedTask = {
+      ...tasks[taskIndex],
+      ...updates,
+      updatedAt: Date.now(),
+    };
+
+    try {
+      await dbService.updateTask(id, updatedTask);
+      const newTasks = [...tasks];
+      newTasks[taskIndex] = updatedTask;
+      set({ tasks: newTasks });
+    } catch (error) {
+      console.error('Failed to update task:', error);
+    }
+  },
+
+  deleteTask: async (id) => {
+    try {
+      await dbService.deleteTask(id);
+      set((state) => ({
+        tasks: state.tasks.filter((task) => task.id !== id),
+      }));
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+    }
+  },
+
+  deleteTasksByNoteId: async (noteId: string) => {
+    const tasksToDelete = get().tasks.filter(t => t.noteId === noteId);
+    
+    try {
+      await Promise.all(tasksToDelete.map(t => dbService.deleteTask(t.id)));
+      set((state) => ({
+        tasks: state.tasks.filter((task) => task.noteId !== noteId),
+      }));
+    } catch (error) {
+      console.error('Failed to delete tasks by noteId:', error);
+    }
   },
 
   getTasksByNoteId: (noteId) => {
     return get().tasks.filter((task) => task.noteId === noteId);
   },
 
-  toggleTaskComplete: (id) => {
+  toggleTaskComplete: async (id) => {
     const task = get().tasks.find(t => t.id === id);
     if (task) {
-      const updatedTask = dbService.updateTask(id, { completed: !task.completed });
-      if (updatedTask) {
-        set((state) => ({
-          tasks: state.tasks.map((t) =>
-            t.id === id ? updatedTask : t
-          ),
-        }));
-      }
+      await get().updateTask(id, { completed: !task.completed });
     }
   },
 
   // 一键生成待办 - 核心功能
-  convertMarkdownToTasks: (markdown: string, noteId: string) => {
+  convertMarkdownToTasks: async (markdown: string, noteId: string) => {
     // 1. 解析 Markdown 提取任务
     const parsedTasks = MarkdownParser.parseToTasks(markdown, noteId);
     
@@ -112,10 +160,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
     
     // 2. 先删除该笔记之前的任务（避免重复）
-    get().deleteTasksByNoteId(noteId);
+    await get().deleteTasksByNoteId(noteId);
     
     // 3. 批量插入新任务
-    get().addTasks(parsedTasks);
+    await get().addTasks(parsedTasks);
     
     return parsedTasks.length;
   },

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { AppSettings, ThemeColor } from '../types';
+import { dbService } from '../services/dbService';
 
 const defaultSettings: AppSettings = {
   general: {
@@ -65,31 +66,33 @@ export const themeColors: Record<ThemeColor, { primary: string; light: string; d
 
 interface SettingsStore {
   settings: AppSettings;
-  loadSettings: () => void;
-  updateSettings: (settings: Partial<AppSettings>) => void;
-  updateGeneralSettings: (general: Partial<AppSettings['general']>) => void;
-  updateAppearanceSettings: (appearance: Partial<AppSettings['appearance']>) => void;
-  updateEditorSettings: (editor: Partial<AppSettings['editor']>) => void;
-  updateTaskRules: (taskRules: Partial<AppSettings['taskRules']>) => void;
-  updateExportSettings: (export_: Partial<AppSettings['export']>) => void;
-  updateImportSettings: (import_: Partial<AppSettings['import']>) => void;
-  setThemeColor: (color: ThemeColor) => void;
-  setTheme: (theme: 'light' | 'dark' | 'auto') => void;
-  toggleSidebar: () => void;
-  toggleNoteList: () => void;
-  toggleTaskPanel: () => void;
-  toggleSidebarCollapsed: () => void;
-  toggleNoteListCollapsed: () => void;
-  toggleTaskPanelCollapsed: () => void;
-  resetSettings: () => void;
+  loadSettings: () => Promise<void>;
+  updateSettings: (settings: Partial<AppSettings>) => Promise<void>;
+  updateGeneralSettings: (general: Partial<AppSettings['general']>) => Promise<void>;
+  updateAppearanceSettings: (appearance: Partial<AppSettings['appearance']>) => Promise<void>;
+  updateEditorSettings: (editor: Partial<AppSettings['editor']>) => Promise<void>;
+  updateTaskRules: (taskRules: Partial<AppSettings['taskRules']>) => Promise<void>;
+  updateExportSettings: (export_: Partial<AppSettings['export']>) => Promise<void>;
+  updateImportSettings: (import_: Partial<AppSettings['import']>) => Promise<void>;
+  setThemeColor: (color: ThemeColor) => Promise<void>;
+  setTheme: (theme: 'light' | 'dark' | 'auto') => Promise<void>;
+  toggleSidebar: () => Promise<void>;
+  toggleNoteList: () => Promise<void>;
+  toggleTaskPanel: () => Promise<void>;
+  toggleSidebarCollapsed: () => Promise<void>;
+  toggleNoteListCollapsed: () => Promise<void>;
+  toggleTaskPanelCollapsed: () => Promise<void>;
+  resetSettings: () => Promise<void>;
 }
+
+const SETTINGS_KEY = 'app_settings';
 
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   settings: defaultSettings,
 
-  loadSettings: () => {
+  loadSettings: async () => {
     try {
-      const stored = localStorage.getItem('memoplan_settings');
+      const stored = await dbService.getSetting(SETTINGS_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         set({ settings: { ...defaultSettings, ...parsed } });
@@ -99,102 +102,120 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     }
   },
 
-  updateSettings: (newSettings) => {
-    set((state) => {
-      const updated = { ...state.settings, ...newSettings };
-      localStorage.setItem('memoplan_settings', JSON.stringify(updated));
-      return { settings: updated };
-    });
+  updateSettings: async (newSettings) => {
+    const updated = { ...get().settings, ...newSettings };
+    try {
+      await dbService.setSetting(SETTINGS_KEY, JSON.stringify(updated));
+      set({ settings: updated });
+    } catch (error) {
+      console.error('保存设置失败:', error);
+    }
   },
 
-  updateGeneralSettings: (general) => {
-    set((state) => {
-      const updated = { ...state.settings, general: { ...state.settings.general, ...general } };
-      localStorage.setItem('memoplan_settings', JSON.stringify(updated));
-      return { settings: updated };
-    });
+  updateGeneralSettings: async (general) => {
+    const updated = { ...get().settings, general: { ...get().settings.general, ...general } };
+    try {
+      await dbService.setSetting(SETTINGS_KEY, JSON.stringify(updated));
+      set({ settings: updated });
+    } catch (error) {
+      console.error('保存设置失败:', error);
+    }
   },
 
-  updateAppearanceSettings: (appearance) => {
-    set((state) => {
-      const updated = { ...state.settings, appearance: { ...state.settings.appearance, ...appearance } };
-      localStorage.setItem('memoplan_settings', JSON.stringify(updated));
-      return { settings: updated };
-    });
+  updateAppearanceSettings: async (appearance) => {
+    const updated = { ...get().settings, appearance: { ...get().settings.appearance, ...appearance } };
+    try {
+      await dbService.setSetting(SETTINGS_KEY, JSON.stringify(updated));
+      set({ settings: updated });
+    } catch (error) {
+      console.error('保存设置失败:', error);
+    }
   },
 
-  updateEditorSettings: (editor) => {
-    set((state) => {
-      const updated = { ...state.settings, editor: { ...state.settings.editor, ...editor } };
-      localStorage.setItem('memoplan_settings', JSON.stringify(updated));
-      return { settings: updated };
-    });
+  updateEditorSettings: async (editor) => {
+    const updated = { ...get().settings, editor: { ...get().settings.editor, ...editor } };
+    try {
+      await dbService.setSetting(SETTINGS_KEY, JSON.stringify(updated));
+      set({ settings: updated });
+    } catch (error) {
+      console.error('保存设置失败:', error);
+    }
   },
 
-  updateTaskRules: (taskRules) => {
-    set((state) => {
-      const updated = { ...state.settings, taskRules: { ...state.settings.taskRules, ...taskRules } };
-      localStorage.setItem('memoplan_settings', JSON.stringify(updated));
-      return { settings: updated };
-    });
+  updateTaskRules: async (taskRules) => {
+    const updated = { ...get().settings, taskRules: { ...get().settings.taskRules, ...taskRules } };
+    try {
+      await dbService.setSetting(SETTINGS_KEY, JSON.stringify(updated));
+      set({ settings: updated });
+    } catch (error) {
+      console.error('保存设置失败:', error);
+    }
   },
 
-  updateExportSettings: (export_) => {
-    set((state) => {
-      const updated = { ...state.settings, export: { ...state.settings.export, ...export_ } };
-      localStorage.setItem('memoplan_settings', JSON.stringify(updated));
-      return { settings: updated };
-    });
+  updateExportSettings: async (export_) => {
+    const updated = { ...get().settings, export: { ...get().settings.export, ...export_ } };
+    try {
+      await dbService.setSetting(SETTINGS_KEY, JSON.stringify(updated));
+      set({ settings: updated });
+    } catch (error) {
+      console.error('保存设置失败:', error);
+    }
   },
 
-  updateImportSettings: (import_) => {
-    set((state) => {
-      const updated = { ...state.settings, import: { ...state.settings.import, ...import_ } };
-      localStorage.setItem('memoplan_settings', JSON.stringify(updated));
-      return { settings: updated };
-    });
+  updateImportSettings: async (import_) => {
+    const updated = { ...get().settings, import: { ...get().settings.import, ...import_ } };
+    try {
+      await dbService.setSetting(SETTINGS_KEY, JSON.stringify(updated));
+      set({ settings: updated });
+    } catch (error) {
+      console.error('保存设置失败:', error);
+    }
   },
 
-  setThemeColor: (color) => {
-    get().updateAppearanceSettings({ themeColor: color });
+  setThemeColor: async (color) => {
+    await get().updateAppearanceSettings({ themeColor: color });
   },
 
-  setTheme: (theme) => {
-    get().updateAppearanceSettings({ theme });
+  setTheme: async (theme) => {
+    await get().updateAppearanceSettings({ theme });
   },
 
-  toggleSidebar: () => {
+  toggleSidebar: async () => {
     const { settings } = get();
-    get().updateAppearanceSettings({ sidebarVisible: !settings.appearance.sidebarVisible });
+    await get().updateAppearanceSettings({ sidebarVisible: !settings.appearance.sidebarVisible });
   },
 
-  toggleNoteList: () => {
+  toggleNoteList: async () => {
     const { settings } = get();
-    get().updateAppearanceSettings({ noteListVisible: !settings.appearance.noteListVisible });
+    await get().updateAppearanceSettings({ noteListVisible: !settings.appearance.noteListVisible });
   },
 
-  toggleTaskPanel: () => {
+  toggleTaskPanel: async () => {
     const { settings } = get();
-    get().updateAppearanceSettings({ taskPanelVisible: !settings.appearance.taskPanelVisible });
+    await get().updateAppearanceSettings({ taskPanelVisible: !settings.appearance.taskPanelVisible });
   },
 
-  toggleSidebarCollapsed: () => {
+  toggleSidebarCollapsed: async () => {
     const { settings } = get();
-    get().updateAppearanceSettings({ sidebarCollapsed: !settings.appearance.sidebarCollapsed });
+    await get().updateAppearanceSettings({ sidebarCollapsed: !settings.appearance.sidebarCollapsed });
   },
 
-  toggleNoteListCollapsed: () => {
+  toggleNoteListCollapsed: async () => {
     const { settings } = get();
-    get().updateAppearanceSettings({ noteListCollapsed: !settings.appearance.noteListCollapsed });
+    await get().updateAppearanceSettings({ noteListCollapsed: !settings.appearance.noteListCollapsed });
   },
 
-  toggleTaskPanelCollapsed: () => {
+  toggleTaskPanelCollapsed: async () => {
     const { settings } = get();
-    get().updateAppearanceSettings({ taskPanelCollapsed: !settings.appearance.taskPanelCollapsed });
+    await get().updateAppearanceSettings({ taskPanelCollapsed: !settings.appearance.taskPanelCollapsed });
   },
 
-  resetSettings: () => {
-    localStorage.setItem('memoplan_settings', JSON.stringify(defaultSettings));
-    set({ settings: defaultSettings });
+  resetSettings: async () => {
+    try {
+      await dbService.setSetting(SETTINGS_KEY, JSON.stringify(defaultSettings));
+      set({ settings: defaultSettings });
+    } catch (error) {
+      console.error('重置设置失败:', error);
+    }
   },
 }));

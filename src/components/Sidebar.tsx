@@ -13,8 +13,8 @@ export default function Sidebar({ currentView, onViewChange, onOpenSettings, onO
   const { addNote, notes, setCurrentNote, deletedNotes } = useNoteStore();
   const { tasks } = useTaskStore();
 
-  const handleNewNote = () => {
-    const newNote = addNote({
+  const handleNewNote = async () => {
+    const newNote = await addNote({
       title: '新建笔记',
       content: '',
       tags: [],
@@ -23,7 +23,7 @@ export default function Sidebar({ currentView, onViewChange, onOpenSettings, onO
       isArchived: false,
       category: 'notes',
     });
-    setTimeout(() => setCurrentNote(newNote.id), 0);
+    setCurrentNote(newNote.id);
   };
 
   const handleViewChange = (view: ViewType) => {

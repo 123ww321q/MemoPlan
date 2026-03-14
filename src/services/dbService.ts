@@ -1,216 +1,244 @@
-import { Note, Task, AppSettings, Template } from '../types';
-import { v4 as uuidv4 } from 'uuid';
+import { invoke } from '@tauri-apps/api/tauri';
+import { Note, Task } from '../types';
 
-// 使用 LocalStorage 作为数据存储（简化版本，后续可迁移到 SQLite）
-const STORAGE_KEYS = {
-  NOTES: 'memoplan_notes',
-  TASKS: 'memoplan_tasks',
-  SETTINGS: 'memoplan_settings',
-  TEMPLATES: 'memoplan_templates',
-};
+// Rust 数据库结构映射
+interface DbNote {
+  id: string;
+  title: string;
+  content: string;
+  tags: string; // JSON string
+  is_pinned: boolean;
+  is_favorite: boolean;
+  is_archived: boolean;
+  is_deleted: boolean;
+  deleted_at?: number;
+  color?: string;
+  font_size?: number;
+  font_family?: string;
+  category: string;
+  created_at: number;
+  updated_at: number;
+}
+
+interface DbTask {
+  id: string;
+  note_id: string;
+  title: string;
+  completed: boolean;
+  priority: string;
+  due_date?: number;
+  level: number;
+  parent_id?: string;
+  order_index: number;
+  created_at: number;
+  updated_at: number;
+}
+
+interface DbTag {
+  id: string;
+  name: string;
+  color?: string;
+  created_at: number;
+}
+
+// 转换函数
+function toDbNote(note: Note): DbNote {
+  return {
+    id: note.id,
+    title: note.title,
+    content: note.content,
+    tags: JSON.stringify(note.tags),
+    is_pinned: note.isPinned,
+    is_favorite: note.isFavorite,
+    is_archived: note.isArchived,
+    is_deleted: note.isDeleted,
+    deleted_at: note.deletedAt,
+    color: note.color,
+    font_size: note.fontSize,
+    font_family: note.fontFamily,
+    category: note.category,
+    created_at: note.createdAt,
+    updated_at: note.updatedAt,
+  };
+}
+
+function fromDbNote(dbNote: DbNote): Note {
+  return {
+    id: dbNote.id,
+    title: dbNote.title,
+    content: dbNote.content,
+    tags: JSON.parse(dbNote.tags || '[]'),
+    isPinned: dbNote.is_pinned,
+    isFavorite: dbNote.is_favorite,
+    isArchived: dbNote.is_archived,
+    isDeleted: dbNote.is_deleted,
+    deletedAt: dbNote.deleted_at,
+    color: dbNote.color,
+    fontSize: dbNote.font_size,
+    fontFamily: dbNote.font_family,
+    category: dbNote.category as 'notes' | 'study' | 'work' | 'tasks',
+    createdAt: dbNote.created_at,
+    updatedAt: dbNote.updated_at,
+  };
+}
+
+function toDbTask(task: Task): DbTask {
+  return {
+    id: task.id,
+    note_id: task.noteId,
+    title: task.title,
+    completed: task.completed,
+    priority: task.priority,
+    due_date: task.dueDate,
+    level: task.level,
+    parent_id: task.parentId,
+    order_index: task.order,
+    created_at: task.createdAt,
+    updated_at: task.updatedAt,
+  };
+}
+
+function fromDbTask(dbTask: DbTask): Task {
+  return {
+    id: dbTask.id,
+    noteId: dbTask.note_id,
+    title: dbTask.title,
+    completed: dbTask.completed,
+    priority: dbTask.priority as 'high' | 'medium' | 'low',
+    dueDate: dbTask.due_date,
+    level: dbTask.level,
+    parentId: dbTask.parent_id,
+    order: dbTask.order_index,
+    createdAt: dbTask.created_at,
+    updatedAt: dbTask.updated_at,
+  };
+}
 
 // 数据库服务
 export const dbService = {
-  // 初始化
-  init: async (): Promise<void> => {
-    // 初始化默认模板
-    const templates = dbService.getTemplates();
-    if (templates.length === 0) {
-      dbService.initDefaultTemplates();
-    }
+  // 笔记操作
+  addNote: async (note: Note): Promise<void> => {
+    await invoke('db_add_note', { note: toDbNote(note) });
   },
 
-  // Notes 操作
-  getNotes: (): Note[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.NOTES);
-    return data ? JSON.parse(data) : [];
+  updateNote: async (id: string, updates: Partial<Note>): Promise<void> => {
+    const existing = await dbService.getNoteById(id);
+    if (!existing) throw new Error('Note not found');
+    const updated = { ...existing, ...updates, updatedAt: Date.now() };
+    await invoke('db_update_note', { note: toDbNote(updated) });
   },
 
-  saveNotes: (notes: Note[]): void => {
-    localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify(notes));
+  deleteNote: async (id: string): Promise<void> => {
+    await invoke('db_delete_note_permanently', { id });
   },
 
-  addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>): Note => {
-    const notes = dbService.getNotes();
-    const newNote: Note = {
-      ...note,
-      id: uuidv4(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    notes.unshift(newNote);
-    dbService.saveNotes(notes);
-    return newNote;
+  getNoteById: async (id: string): Promise<Note | null> => {
+    const result = await invoke<DbNote | null>('db_get_note_by_id', { id });
+    return result ? fromDbNote(result) : null;
   },
 
-  updateNote: (id: string, updates: Partial<Note>): Note | null => {
-    const notes = dbService.getNotes();
-    const index = notes.findIndex(n => n.id === id);
-    if (index === -1) return null;
-    
-    notes[index] = { ...notes[index], ...updates, updatedAt: Date.now() };
-    dbService.saveNotes(notes);
-    return notes[index];
+  getNotes: async (includeDeleted = false): Promise<Note[]> => {
+    const results = await invoke<DbNote[]>('db_get_all_notes', { includeDeleted });
+    return results.map(fromDbNote);
   },
 
-  deleteNote: (id: string): void => {
-    const notes = dbService.getNotes().filter(n => n.id !== id);
-    dbService.saveNotes(notes);
-    // 同时删除相关任务
-    const tasks = dbService.getTasks().filter(t => t.noteId !== id);
-    dbService.saveTasks(tasks);
+  searchNotes: async (query: string): Promise<Note[]> => {
+    const results = await invoke<DbNote[]>('db_search_notes', { query });
+    return results.map(fromDbNote);
   },
 
-  // Tasks 操作
-  getTasks: (): Task[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.TASKS);
-    return data ? JSON.parse(data) : [];
+  // 任务操作
+  addTask: async (task: Task): Promise<void> => {
+    await invoke('db_add_task', { task: toDbTask(task) });
   },
 
-  saveTasks: (tasks: Task[]): void => {
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+  updateTask: async (id: string, updates: Partial<Task>): Promise<void> => {
+    const existing = await dbService.getTaskById(id);
+    if (!existing) throw new Error('Task not found');
+    const updated = { ...existing, ...updates, updatedAt: Date.now() };
+    await invoke('db_update_task', { task: toDbTask(updated) });
   },
 
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Task => {
-    const tasks = dbService.getTasks();
-    const newTask: Task = {
-      ...task,
-      id: uuidv4(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    tasks.push(newTask);
-    dbService.saveTasks(tasks);
-    return newTask;
+  deleteTask: async (id: string): Promise<void> => {
+    await invoke('db_delete_task', { id });
   },
 
-  addTasks: (newTasks: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>[]): Task[] => {
-    const tasks = dbService.getTasks();
-    const createdTasks: Task[] = newTasks.map(task => ({
-      ...task,
-      id: uuidv4(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }));
-    tasks.push(...createdTasks);
-    dbService.saveTasks(tasks);
-    return createdTasks;
+  getTaskById: async (id: string): Promise<Task | null> => {
+    const tasks = await dbService.getTasks();
+    return tasks.find(t => t.id === id) || null;
   },
 
-  updateTask: (id: string, updates: Partial<Task>): Task | null => {
-    const tasks = dbService.getTasks();
-    const index = tasks.findIndex(t => t.id === id);
-    if (index === -1) return null;
-    
-    tasks[index] = { ...tasks[index], ...updates, updatedAt: Date.now() };
-    dbService.saveTasks(tasks);
-    return tasks[index];
+  getTasks: async (): Promise<Task[]> => {
+    const results = await invoke<DbTask[]>('db_get_all_tasks');
+    return results.map(fromDbTask);
   },
 
-  deleteTask: (id: string): void => {
-    const tasks = dbService.getTasks().filter(t => t.id !== id);
-    dbService.saveTasks(tasks);
+  getTasksByNoteId: async (noteId: string): Promise<Task[]> => {
+    const results = await invoke<DbTask[]>('db_get_tasks_by_note_id', { noteId });
+    return results.map(fromDbTask);
   },
 
-  deleteTasksByNoteId: (noteId: string): void => {
-    const tasks = dbService.getTasks().filter(t => t.noteId !== noteId);
-    dbService.saveTasks(tasks);
+  // 标签操作
+  addTag: async (tag: { id: string; name: string; color?: string; createdAt: number }): Promise<void> => {
+    await invoke('db_add_tag', { tag });
   },
 
-  getTasksByNoteId: (noteId: string): Task[] => {
-    return dbService.getTasks().filter(t => t.noteId === noteId);
+  updateTag: async (tag: { id: string; name: string; color?: string; createdAt: number }): Promise<void> => {
+    await invoke('db_update_tag', { tag });
   },
 
-  // Settings 操作
-  getSettings: (): AppSettings | null => {
-    const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return data ? JSON.parse(data) : null;
+  deleteTag: async (id: string): Promise<void> => {
+    await invoke('db_delete_tag', { id });
   },
 
-  saveSettings: (settings: AppSettings): void => {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  getTags: async (): Promise<DbTag[]> => {
+    return await invoke<DbTag[]>('db_get_all_tags');
   },
 
-  // Templates 操作
-  getTemplates: (): Template[] => {
-    const data = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
-    return data ? JSON.parse(data) : [];
+  // 设置操作
+  setSetting: async (key: string, value: string): Promise<void> => {
+    await invoke('db_set_setting', { key, value });
   },
 
-  saveTemplates: (templates: Template[]): void => {
-    localStorage.setItem(STORAGE_KEYS.TEMPLATES, JSON.stringify(templates));
+  getSetting: async (key: string): Promise<string | null> => {
+    return await invoke<string | null>('db_get_setting', { key });
   },
 
-  initDefaultTemplates: (): void => {
-    const templates: Template[] = [
-      {
-        id: 'template-study-plan',
-        name: '学习计划',
-        nameI18n: { 'zh-CN': '学习计划', 'zh-TW': '學習計劃', 'en': 'Study Plan' },
-        content: `# 学习计划
+  // 数据迁移
+  migrateFromLocalStorage: async (): Promise<void> => {
+    const notes = localStorage.getItem('memoplan_notes') || '[]';
+    const tasks = localStorage.getItem('memoplan_tasks') || '[]';
+    const settings = localStorage.getItem('memoplan_settings') || '{}';
 
-## 目标
-- [ ] 明确学习目标
+    await invoke('db_migrate_from_json', {
+      data: { notes, tasks, settings }
+    });
 
-## 时间安排
-- [ ] 第一周：基础知识
-- [ ] 第二周：进阶内容
-- [ ] 第三周：实践项目
+    // Clear localStorage after successful migration
+    localStorage.removeItem('memoplan_notes');
+    localStorage.removeItem('memoplan_tasks');
+    localStorage.removeItem('memoplan_settings');
+    localStorage.setItem('memoplan_migrated', 'true');
+  },
 
-## 复习计划
-- [ ] 每日复习
-- [ ] 每周总结
-`,
-        category: 'study',
-        icon: 'menu_book',
-      },
-      {
-        id: 'template-work-list',
-        name: '工作清单',
-        nameI18n: { 'zh-CN': '工作清单', 'zh-TW': '工作清單', 'en': 'Work List' },
-        content: `# 工作清单
-
-## 今日任务
-- [ ] 任务 1
-- [ ] 任务 2
-- [ ] 任务 3
-
-## 本周计划
-- [ ] 项目 A
-- [ ] 项目 B
-
-## 待跟进
-- [ ] 跟进事项 1
-`,
-        category: 'work',
-        icon: 'work',
-      },
-      {
-        id: 'template-reading-notes',
-        name: '读书笔记',
-        nameI18n: { 'zh-CN': '读书笔记', 'zh-TW': '讀書筆記', 'en': 'Reading Notes' },
-        content: `# 读书笔记
-
-## 书籍信息
-- 书名：
-- 作者：
-- 阅读日期：
-
-## 核心观点
-- 
-
-## 行动清单
-- [ ] 行动 1
-- [ ] 行动 2
-`,
-        category: 'study',
-        icon: 'book',
-      },
-    ];
-    dbService.saveTemplates(templates);
+  checkMigrationStatus: (): boolean => {
+    return localStorage.getItem('memoplan_migrated') === 'true';
   },
 };
 
-// 兼容旧接口
-export const initDatabase = dbService.init;
-export const getDb = () => dbService;
+// 初始化数据库
+export const initDatabase = async (): Promise<void> => {
+  // Check if migration is needed
+  if (!dbService.checkMigrationStatus()) {
+    const notes = localStorage.getItem('memoplan_notes');
+    const hasLocalData = notes && JSON.parse(notes).length > 0;
+    
+    if (hasLocalData) {
+      console.log('Migrating data from localStorage to SQLite...');
+      await dbService.migrateFromLocalStorage();
+      console.log('Migration completed!');
+    } else {
+      localStorage.setItem('memoplan_migrated', 'true');
+    }
+  }
+};

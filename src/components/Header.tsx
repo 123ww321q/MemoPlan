@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { appWindow } from '@tauri-apps/api/window';
 import { useNoteStore } from '../stores/noteStore';
@@ -6,24 +5,24 @@ import { useNoteStore } from '../stores/noteStore';
 interface HeaderProps {
   onOpenSettings: () => void;
   onOpenTrash: () => void;
+  onOpenSearch: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
 }
 
-export default function Header({ onOpenSettings, onOpenTrash, canUndo, canRedo, onUndo, onRedo }: HeaderProps) {
+export default function Header({ onOpenSettings, onOpenTrash, onOpenSearch, canUndo, canRedo, onUndo, onRedo }: HeaderProps) {
   const { t } = useTranslation();
   const { addNote, setCurrentNote } = useNoteStore();
-  const [searchQuery, setSearchQuery] = useState('');
 
   const handleMinimize = () => appWindow.minimize();
   const handleMaximize = () => appWindow.toggleMaximize();
-  const handleClose = () => appWindow.close();
+  const handleClose = () => appWindow.hide();
 
   // 新建笔记
-  const handleNewNote = () => {
-    const newNote = addNote({
+  const handleNewNote = async () => {
+    const newNote = await addNote({
       title: '新建笔记',
       content: '',
       tags: [],
@@ -72,20 +71,16 @@ export default function Header({ onOpenSettings, onOpenTrash, canUndo, canRedo, 
         </div>
       </div>
 
-      {/* 中间 - 搜索 */}
+      {/* 中间 - 搜索按钮 */}
       <div className="flex-1 max-w-xl mx-4">
-        <div className="relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            search
-          </span>
-          <input
-            className="w-full bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-1.5 focus:ring-2 focus:ring-[var(--primary-color,#ec5b13)] text-sm transition-all outline-none"
-            placeholder={t('header.search')}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+        <button
+          onClick={onOpenSearch}
+          className="w-full flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-500 hover:border-primary transition-all"
+        >
+          <span className="material-symbols-outlined text-slate-400">search</span>
+          <span>搜索笔记...</span>
+          <span className="ml-auto text-xs text-slate-400">Ctrl+Shift+F</span>
+        </button>
       </div>
 
       {/* 右侧 - 功能按钮 */}
@@ -100,6 +95,14 @@ export default function Header({ onOpenSettings, onOpenTrash, canUndo, canRedo, 
         </button>
 
         <div className="h-6 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1"></div>
+        
+        <button 
+          onClick={onOpenSearch}
+          className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          title="搜索 (Ctrl+Shift+F)"
+        >
+          <span className="material-symbols-outlined text-xl">search</span>
+        </button>
         
         <button 
           onClick={onOpenTrash}

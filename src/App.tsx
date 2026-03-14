@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSettingsStore, themeColors } from './stores/settingsStore';
 import { useNoteStore } from './stores/noteStore';
 import { useTaskStore } from './stores/taskStore';
+import { listen } from '@tauri-apps/api/event';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import NoteList from './components/NoteList';
@@ -10,17 +11,20 @@ import Editor from './components/Editor';
 import TaskPanel from './components/TaskPanel';
 import SettingsPage from './pages/SettingsPage';
 import TrashPage from './pages/TrashPage';
+import SearchPage from './pages/SearchPage';
 import { ViewType } from './types';
 
 function App() {
   const { i18n } = useTranslation();
   const { settings, loadSettings } = useSettingsStore();
-  const { init: initNotes, canUndo, canRedo, undo, redo } = useNoteStore();
+  const { init: initNotes, canUndo, canRedo, undo, redo, addNote } = useNoteStore();
   const { init: initTasks } = useTaskStore();
   
   const [currentView, setCurrentView] = useState<ViewType>('all');
   const [showSettings, setShowSettings] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // 初始化数据库和加载数据
   useEffect(() => {
@@ -28,23 +32,51 @@ function App() {
       try {
         await initNotes();
         await initTasks();
+        await loadSettings();
+        setIsInitialized(true);
       } catch (error) {
         console.error('初始化失败:', error);
       }
     };
     init();
-  }, [initNotes, initTasks]);
+  }, [initNotes, initTasks, loadSettings]);
+
+  // 监听 Tauri 全局快捷键事件
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const unlistenNewNote = listen('new-note', () => {
+      addNote({
+        title: '新建笔记',
+        content: '',
+        tags: [],
+        isPinned: false,
+        isFavorite: false,
+        isArchived: false,
+        category: 'notes',
+      });
+    });
+
+    const unlistenFocusSearch = listen('focus-search', () => {
+      setShowSearch(true);
+    });
+
+    return () => {
+      unlistenNewNote.then(fn => fn());
+      unlistenFocusSearch.then(fn => fn());
+    };
+  }, [isInitialized, addNote]);
 
   useEffect(() => {
-    loadSettings();
-  }, [loadSettings]);
-
-  useEffect(() => {
-    i18n.changeLanguage(settings.language);
-  }, [settings.language, i18n]);
+    if (isInitialized) {
+      i18n.changeLanguage(settings.language);
+    }
+  }, [settings.language, i18n, isInitialized]);
 
   // 主题处理
   useEffect(() => {
+    if (!isInitialized) return;
+
     const applyTheme = () => {
       let theme = settings.appearance.theme;
       
@@ -66,16 +98,18 @@ function App() {
       mediaQuery.addEventListener('change', applyTheme);
       return () => mediaQuery.removeEventListener('change', applyTheme);
     }
-  }, [settings.appearance.theme]);
+  }, [settings.appearance.theme, isInitialized]);
 
   // 应用主题色CSS变量
   useEffect(() => {
+    if (!isInitialized) return;
+    
     const color = themeColors[settings.appearance.themeColor];
     const root = document.documentElement;
     root.style.setProperty('--primary-color', color.primary);
     root.style.setProperty('--primary-light', color.light);
     root.style.setProperty('--primary-dark', color.dark);
-  }, [settings.appearance.themeColor]);
+  }, [settings.appearance.themeColor, isInitialized]);
 
   // 键盘快捷键
   useEffect(() => {
@@ -95,6 +129,11 @@ function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === ',') {
         e.preventDefault();
         setShowSettings(true);
+      }
+      // Ctrl/Cmd + Shift + F 打开搜索
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'f') {
+        e.preventDefault();
+        setShowSearch(true);
       }
     };
 
@@ -125,6 +164,17 @@ function App() {
     
     return undefined;
   };
+
+  if (!isInitialized) {
+    return (
+      <div className="flex items-center justify-center h-screen w-full bg-slate-100 dark:bg-slate-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-500">正在初始化...</p>
+        </div>
+      </div>
+    );
+  }
 
   const backgroundStyle = getBackgroundStyle();
   const isDark = settings.appearance.theme === 'dark' || 
@@ -158,6 +208,7 @@ function App() {
       <Header 
         onOpenSettings={() => setShowSettings(true)}
         onOpenTrash={() => setShowTrash(true)}
+        onOpenSearch={() => setShowSearch(true)}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
@@ -195,6 +246,12 @@ function App() {
       <TrashPage 
         isOpen={showTrash} 
         onClose={() => setShowTrash(false)} 
+      />
+
+      {/* 搜索页面 */}
+      <SearchPage
+        isOpen={showSearch}
+        onClose={() => setShowSearch(false)}
       />
     </div>
   );

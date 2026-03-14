@@ -8,6 +8,8 @@ interface NoteStore {
   currentNoteId: string | null;
   isLoading: boolean;
   initialized: boolean;
+  searchResults: Note[];
+  isSearching: boolean;
   
   // 历史记录（用于撤销/重做）
   history: {
@@ -18,27 +20,30 @@ interface NoteStore {
   canRedo: boolean;
   
   init: () => Promise<void>;
-  loadNotes: () => void;
-  loadDeletedNotes: () => void;
-  addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt' | 'isDeleted'>) => Note;
-  updateNote: (id: string, updates: Partial<Note>) => void;
-  deleteNote: (id: string, permanent?: boolean) => void;
-  restoreNote: (id: string) => void;
-  permanentlyDeleteNote: (id: string) => void;
-  emptyTrash: () => void;
+  loadNotes: () => Promise<void>;
+  loadDeletedNotes: () => Promise<void>;
+  addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt' | 'isDeleted'>) => Promise<Note>;
+  updateNote: (id: string, updates: Partial<Note>) => Promise<void>;
+  deleteNote: (id: string, permanent?: boolean) => Promise<void>;
+  restoreNote: (id: string) => Promise<void>;
+  permanentlyDeleteNote: (id: string) => Promise<void>;
+  emptyTrash: () => Promise<void>;
   setCurrentNote: (id: string | null) => void;
   getCurrentNote: () => Note | null;
+  
+  // 搜索
+  searchNotes: (query: string) => Promise<void>;
+  clearSearch: () => void;
   
   // 撤销/重做
   undo: () => void;
   redo: () => void;
   saveHistory: () => void;
-  updateHistoryState: () => void;
   
   // 批量操作
-  batchUpdate: (updates: { id: string; changes: Partial<Note> }[]) => void;
-  batchDelete: (ids: string[]) => void;
-  batchRestore: (ids: string[]) => void;
+  batchUpdate: (updates: { id: string; changes: Partial<Note> }[]) => Promise<void>;
+  batchDelete: (ids: string[]) => Promise<void>;
+  batchRestore: (ids: string[]) => Promise<void>;
 }
 
 const MAX_HISTORY_SIZE = 50;
@@ -49,6 +54,8 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
   currentNoteId: null,
   isLoading: false,
   initialized: false,
+  searchResults: [],
+  isSearching: false,
   history: {
     past: [],
     future: [],
@@ -59,19 +66,16 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
   init: async () => {
     if (get().initialized) return;
     await initDatabase();
-    get().loadNotes();
-    get().loadDeletedNotes();
+    await get().loadNotes();
+    await get().loadDeletedNotes();
     set({ initialized: true });
   },
 
-  loadNotes: () => {
+  loadNotes: async () => {
     set({ isLoading: true });
     try {
-      const allNotes = dbService.getNotes ? dbService.getNotes() : [];
-      // 过滤掉已删除的笔记
-      const activeNotes = allNotes.filter((note: Note) => !note.isDeleted);
-      set({ notes: activeNotes });
-      get().updateHistoryState();
+      const notes = await dbService.getNotes(false);
+      set({ notes });
     } catch (error) {
       console.error('加载笔记失败:', error);
     } finally {
@@ -79,9 +83,9 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     }
   },
 
-  loadDeletedNotes: () => {
+  loadDeletedNotes: async () => {
     try {
-      const allNotes = dbService.getNotes ? dbService.getNotes() : [];
+      const allNotes = await dbService.getNotes(true);
       const deleted = allNotes.filter((note: Note) => note.isDeleted);
       set({ deletedNotes: deleted });
     } catch (error) {
@@ -89,11 +93,31 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     }
   },
 
+  searchNotes: async (query: string) => {
+    if (!query.trim()) {
+      get().clearSearch();
+      return;
+    }
+    
+    set({ isSearching: true });
+    try {
+      const results = await dbService.searchNotes(query);
+      set({ searchResults: results });
+    } catch (error) {
+      console.error('搜索失败:', error);
+    } finally {
+      set({ isSearching: false });
+    }
+  },
+
+  clearSearch: () => {
+    set({ searchResults: [], isSearching: false });
+  },
+
   saveHistory: () => {
     const { notes, history } = get();
     const newPast = [...history.past, JSON.parse(JSON.stringify(notes))];
     
-    // 限制历史记录大小
     if (newPast.length > MAX_HISTORY_SIZE) {
       newPast.shift();
     }
@@ -105,14 +129,6 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
       },
       canUndo: newPast.length > 0,
       canRedo: false,
-    });
-  },
-
-  updateHistoryState: () => {
-    const { history } = get();
-    set({
-      canUndo: history.past.length > 0,
-      canRedo: history.future.length > 0,
     });
   },
 
@@ -129,20 +145,13 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
         past: newPast,
         future: [JSON.parse(JSON.stringify(notes)), ...history.future],
       },
+      canUndo: newPast.length > 0,
+      canRedo: true,
     });
     
-    get().updateHistoryState();
-    
     // 同步到数据库
-    try {
-      previous.forEach((note: Note) => {
-        if (dbService.updateNote) {
-          dbService.updateNote(note.id, note);
-        }
-      });
-    } catch (error) {
-      console.error('撤销同步失败:', error);
-    }
+    Promise.all(previous.map((note: Note) => dbService.updateNote(note.id, note)))
+      .catch(error => console.error('撤销同步失败:', error));
   },
 
   redo: () => {
@@ -158,23 +167,16 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
         past: [...history.past, JSON.parse(JSON.stringify(notes))],
         future: newFuture,
       },
+      canUndo: true,
+      canRedo: newFuture.length > 0,
     });
     
-    get().updateHistoryState();
-    
     // 同步到数据库
-    try {
-      next.forEach((note: Note) => {
-        if (dbService.updateNote) {
-          dbService.updateNote(note.id, note);
-        }
-      });
-    } catch (error) {
-      console.error('重做同步失败:', error);
-    }
+    Promise.all(next.map((note: Note) => dbService.updateNote(note.id, note)))
+      .catch(error => console.error('重做同步失败:', error));
   },
 
-  addNote: (note) => {
+  addNote: async (note) => {
     get().saveHistory();
     
     const newNote: Note = {
@@ -186,27 +188,23 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     };
     
     try {
-      if (dbService.addNote) {
-        dbService.addNote(newNote);
-      }
+      await dbService.addNote(newNote);
+      set((state) => ({ 
+        notes: [newNote, ...state.notes],
+        currentNoteId: newNote.id 
+      }));
     } catch (error) {
       console.error('添加笔记失败:', error);
     }
     
-    set((state) => ({ 
-      notes: [newNote, ...state.notes],
-      currentNoteId: newNote.id 
-    }));
-    
     return newNote;
   },
 
-  updateNote: (id, updates) => {
+  updateNote: async (id, updates) => {
     const { notes } = get();
     const noteIndex = notes.findIndex((n) => n.id === id);
     if (noteIndex === -1) return;
 
-    // 保存历史记录（只在非自动保存时保存，比如标题或内容变更）
     if (updates.title !== undefined || updates.content !== undefined) {
       get().saveHistory();
     }
@@ -218,21 +216,18 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     };
 
     try {
-      if (dbService.updateNote) {
-        dbService.updateNote(id, updatedNote);
-      }
+      await dbService.updateNote(id, updatedNote);
+      const newNotes = [...notes];
+      newNotes[noteIndex] = updatedNote;
+      set({ notes: newNotes });
     } catch (error) {
       console.error('更新笔记失败:', error);
     }
-
-    const newNotes = [...notes];
-    newNotes[noteIndex] = updatedNote;
-    set({ notes: newNotes });
   },
 
-  deleteNote: (id, permanent = false) => {
+  deleteNote: async (id, permanent = false) => {
     if (permanent) {
-      get().permanentlyDeleteNote(id);
+      await get().permanentlyDeleteNote(id);
       return;
     }
 
@@ -249,21 +244,18 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     };
 
     try {
-      if (dbService.updateNote) {
-        dbService.updateNote(id, updatedNote);
-      }
+      await dbService.updateNote(id, updatedNote);
+      set((state) => ({
+        notes: state.notes.filter((n) => n.id !== id),
+        deletedNotes: [updatedNote, ...state.deletedNotes],
+        currentNoteId: state.currentNoteId === id ? null : state.currentNoteId,
+      }));
     } catch (error) {
       console.error('删除笔记失败:', error);
     }
-
-    set((state) => ({
-      notes: state.notes.filter((n) => n.id !== id),
-      deletedNotes: [updatedNote, ...state.deletedNotes],
-      currentNoteId: state.currentNoteId === id ? null : state.currentNoteId,
-    }));
   },
 
-  restoreNote: (id) => {
+  restoreNote: async (id) => {
     get().saveHistory();
 
     const { deletedNotes } = get();
@@ -278,47 +270,36 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     };
 
     try {
-      if (dbService.updateNote) {
-        dbService.updateNote(id, restoredNote);
-      }
+      await dbService.updateNote(id, restoredNote);
+      set((state) => ({
+        notes: [restoredNote, ...state.notes],
+        deletedNotes: state.deletedNotes.filter((n) => n.id !== id),
+      }));
     } catch (error) {
       console.error('恢复笔记失败:', error);
     }
-
-    set((state) => ({
-      notes: [restoredNote, ...state.notes],
-      deletedNotes: state.deletedNotes.filter((n) => n.id !== id),
-    }));
   },
 
-  permanentlyDeleteNote: (id) => {
+  permanentlyDeleteNote: async (id) => {
     try {
-      if (dbService.deleteNote) {
-        dbService.deleteNote(id);
-      }
+      await dbService.deleteNote(id);
+      set((state) => ({
+        deletedNotes: state.deletedNotes.filter((n) => n.id !== id),
+      }));
     } catch (error) {
       console.error('永久删除笔记失败:', error);
     }
-
-    set((state) => ({
-      deletedNotes: state.deletedNotes.filter((n) => n.id !== id),
-    }));
   },
 
-  emptyTrash: () => {
+  emptyTrash: async () => {
     const { deletedNotes } = get();
     
     try {
-      deletedNotes.forEach((note) => {
-        if (dbService.deleteNote) {
-          dbService.deleteNote(note.id);
-        }
-      });
+      await Promise.all(deletedNotes.map(note => dbService.deleteNote(note.id)));
+      set({ deletedNotes: [] });
     } catch (error) {
       console.error('清空回收站失败:', error);
     }
-
-    set({ deletedNotes: [] });
   },
 
   setCurrentNote: (id) => {
@@ -330,50 +311,46 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     return notes.find((note) => note.id === currentNoteId) || null;
   },
 
-  batchUpdate: (updates) => {
+  batchUpdate: async (updates) => {
     get().saveHistory();
 
     const { notes } = get();
     const newNotes = [...notes];
 
-    updates.forEach(({ id, changes }) => {
+    for (const { id, changes } of updates) {
       const index = newNotes.findIndex((n) => n.id === id);
       if (index !== -1) {
         newNotes[index] = { ...newNotes[index], ...changes, updatedAt: Date.now() };
         try {
-          if (dbService.updateNote) {
-            dbService.updateNote(id, newNotes[index]);
-          }
+          await dbService.updateNote(id, newNotes[index]);
         } catch (error) {
           console.error('批量更新失败:', error);
         }
       }
-    });
+    }
 
     set({ notes: newNotes });
   },
 
-  batchDelete: (ids) => {
+  batchDelete: async (ids) => {
     get().saveHistory();
 
     const { notes } = get();
     const now = Date.now();
     const deletedNotesToAdd: Note[] = [];
 
-    ids.forEach((id) => {
+    for (const id of ids) {
       const note = notes.find((n) => n.id === id);
       if (note) {
         const deletedNote = { ...note, isDeleted: true, deletedAt: now };
         deletedNotesToAdd.push(deletedNote);
         try {
-          if (dbService.updateNote) {
-            dbService.updateNote(id, deletedNote);
-          }
+          await dbService.updateNote(id, deletedNote);
         } catch (error) {
           console.error('批量删除失败:', error);
         }
       }
-    });
+    }
 
     set((state) => ({
       notes: state.notes.filter((n) => !ids.includes(n.id)),
@@ -382,26 +359,24 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     }));
   },
 
-  batchRestore: (ids) => {
+  batchRestore: async (ids) => {
     get().saveHistory();
 
     const { deletedNotes } = get();
     const restoredNotes: Note[] = [];
 
-    ids.forEach((id) => {
+    for (const id of ids) {
       const note = deletedNotes.find((n) => n.id === id);
       if (note) {
         const restoredNote = { ...note, isDeleted: false, deletedAt: undefined, updatedAt: Date.now() };
         restoredNotes.push(restoredNote);
         try {
-          if (dbService.updateNote) {
-            dbService.updateNote(id, restoredNote);
-          }
+          await dbService.updateNote(id, restoredNote);
         } catch (error) {
           console.error('批量恢复失败:', error);
         }
       }
-    });
+    }
 
     set((state) => ({
       notes: [...restoredNotes, ...state.notes],

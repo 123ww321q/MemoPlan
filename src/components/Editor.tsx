@@ -139,14 +139,14 @@ export default function Editor() {
   };
 
   // 一键生成待办
-  const handleConvertToTasks = () => {
+  const handleConvertToTasks = async () => {
     if (!currentNote || !content.trim()) return;
 
     setIsConverting(true);
     setConvertMessage('');
 
     try {
-      const taskCount = convertMarkdownToTasks(content, currentNote.id);
+      const taskCount = await convertMarkdownToTasks(content, currentNote.id);
 
       if (taskCount > 0) {
         setConvertMessage(`✅ ${t('editor.convertSuccess', { count: taskCount })}`);
