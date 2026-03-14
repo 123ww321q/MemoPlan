@@ -127,8 +127,8 @@ export default function SearchPage({ isOpen, onClose }: SearchPageProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/50 backdrop-blur-sm">
-      <div className="w-[700px] max-h-[80vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-black/50 backdrop-blur-sm">
+      <div className="w-[550px] max-h-[70vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         {/* 搜索头部 */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-700">
           <div className="relative">

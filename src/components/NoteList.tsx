@@ -313,13 +313,8 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
               onClick={() => setCurrentNote(note.id)}
               onContextMenu={(e) => handleContextMenu(e, note.id)}
               className={`p-3 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer border ${
-                currentNoteId === note.id 
-                  ? 'ring-2' 
-                  : getNoteColorStyle(note.color)
-              }`}
-              style={{
-                borderColor: currentNoteId === note.id ? 'var(--primary-color, #ec5b13)' : undefined,
-              }}
+                getNoteColorStyle(note.color)
+              } ${currentNoteId === note.id ? 'ring-2 ring-[var(--primary-color,#ec5b13)]' : ''}`}
             >
               <div className="flex justify-between items-start mb-1">
                 {editingNoteId === note.id ? (
