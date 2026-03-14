@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #ec5b13;
+  --primary-light: #fff7ed;
+  --primary-dark: #7c2d12;
+}
+
+body {
+  margin: 0;
+  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .glass {
+  background: rgba(34, 22, 16, 0.7);
+  backdrop-filter: blur(12px);
+}
+
+.markdown-editor {
+  font-family: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 任务列表样式 */
+.task-list-item {
+  list-style: none;
+  padding-left: 0;
+}
+
+.task-list-item input[type="checkbox"] {
+  margin-right: 0.5rem;
+  cursor: default;
+}
+
+/* 计划表内容样式 */
+.task-plan-content {
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.task-plan-content ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.task-plan-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.7rem;
+}
+
+.task-plan-content th,
+.task-plan-content td {
+  border: 1px solid #e2e8f0;
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+}
+
+.dark .task-plan-content th,
+.dark .task-plan-content td {
+  border-color: #334155;
+}
+
+.task-plan-content th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+}
+
+.dark .task-plan-content th {
+  background-color: #1e293b;
+}
+
+.task-plan-content tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.dark .task-plan-content tr:nth-child(even) {
+  background-color: #0f172a;
+}
+
+/* Prose 样式优化 */
+.prose {
+  max-width: none;
+}
+
+.prose pre {
+  background-color: #f1f5f9;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  overflow-x: auto;
+}
+
+.dark .prose pre {
+  background-color: #1e293b;
+}
+
+.prose code {
+  background-color: #f1f5f9;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.dark .prose code {
+  background-color: #1e293b;
+}
+
+.prose blockquote {
+  border-left: 3px solid #e2e8f0;
+  padding-left: 1rem;
+  margin-left: 0;
+  color: #64748b;
+}
+
+.dark .prose blockquote {
+  border-left-color: #334155;
+  color: #94a3b8;
+}
+
+/* 调整大小时的样式 */
+.resizing {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+/* 动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* 自定义 focus ring 颜色 */
+.focus-ring-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-color, #ec5b13);
+}
+
+/* 自定义按钮颜色 */
+.bg-primary {
+  background-color: var(--primary-color, #ec5b13);
+}
+
+.text-primary {
+  color: var(--primary-color, #ec5b13);
+}
+
+.border-primary {
+  border-color: var(--primary-color, #ec5b13);
+}
+
+.ring-primary {
+  --tw-ring-color: var(--primary-color, #ec5b13);
+}
+
+/* 自定义 hover 背景 */
+.hover\:bg-primary:hover {
+  background-color: var(--primary-color, #ec5b13);
+}
+
+.hover\:bg-primary\/10:hover {
+  background-color: color-mix(in srgb, var(--primary-color, #ec5b13) 10%, transparent);
+}
+
+.hover\:text-primary:hover {
+  color: var(--primary-color, #ec5b13);
+}
+
+.hover\:border-primary:hover {
+  border-color: var(--primary-color, #ec5b13);
+}
+
+/* 自定义 focus ring */
+.focus\:ring-primary:focus {
+  --tw-ring-color: var(--primary-color, #ec5b13);
+}

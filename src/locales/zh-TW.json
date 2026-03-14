@@ -1,0 +1,58 @@
+{
+  "app": {
+    "name": "MemoPlan",
+    "version": "v1.0.0"
+  },
+  "sidebar": {
+    "newNote": "新建筆記",
+    "allNotes": "全部筆記",
+    "todayTasks": "今日任務",
+    "studyPlan": "學習計劃",
+    "favorites": "收藏",
+    "archive": "歸檔",
+    "settings": "設定"
+  },
+  "header": {
+    "search": "搜尋",
+    "new": "新建",
+    "import": "匯入",
+    "changeBackground": "更換背景",
+    "language": "語言",
+    "darkMode": "深色模式"
+  },
+  "editor": {
+    "save": "儲存",
+    "favorite": "收藏",
+    "pin": "置頂",
+    "templates": "範本",
+    "convertToTask": "轉換為任務"
+  },
+  "tasks": {
+    "title": "任務",
+    "extractedFromNote": "從筆記提取",
+    "relatedGoals": "相關目標",
+    "quickAdd": "快速新增任務...",
+    "high": "高",
+    "medium": "中",
+    "low": "低"
+  },
+  "settings": {
+    "general": "通用",
+    "appearance": "外觀",
+    "language": "語言",
+    "editing": "編輯",
+    "tasks": "任務",
+    "visualStyle": "視覺樣式",
+    "backgroundImage": "背景圖片",
+    "backgroundBlur": "背景模糊",
+    "transparency": "透明度",
+    "themeColor": "主題色",
+    "displayLanguage": "顯示語言",
+    "saveChanges": "儲存變更",
+    "discard": "放棄"
+  },
+  "status": {
+    "saved": "所有變更已儲存",
+    "words": "字數"
+  }
+}

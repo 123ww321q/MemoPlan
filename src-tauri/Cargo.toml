@@ -1,0 +1,20 @@
+[package]
+name = "memoplan"
+version = "1.0.0"
+description = "桌面便签 + Markdown 笔记 + 学习待办规划工具"
+authors = ["MemoPlan Team"]
+license = "MIT"
+repository = ""
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+tauri = { version = "1.5", features = ["dialog-all", "fs-all", "shell-open", "window-all"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
