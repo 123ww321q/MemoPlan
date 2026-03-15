@@ -30,12 +30,12 @@ export interface PanelConfig {
 // 折叠时的宽度
 export const COLLAPSED_WIDTH = 60;
 
-// 默认面板配置 - 调整宽度使布局更紧凑
+// 默认面板配置 - 调整宽度使布局更紧凑，中间区域更大
 export const defaultPanelConfigs: Record<PanelKey, PanelConfig> = {
   navigation: {
     index: 1,
-    width: 160,   // 变窄
-    minWidth: 140,
+    width: 150,   // 左侧导航变窄
+    minWidth: 120,
     maxWidth: 200,
     icon: 'menu',
     title: '导航',
@@ -43,16 +43,16 @@ export const defaultPanelConfigs: Record<PanelKey, PanelConfig> = {
   },
   noteList: {
     index: 2,
-    width: 220,   // 变窄
-    minWidth: 180,
-    maxWidth: 300,
+    width: 200,   // 笔记列表变窄
+    minWidth: 160,
+    maxWidth: 280,
     icon: 'list',
     title: '笔记',
     position: 'left',
   },
   editor: {
     index: 3,
-    width: 600,   // 给撰写更多空间
+    width: 550,   // 撰写区域
     minWidth: 400,
     maxWidth: 800,
     icon: 'edit',
@@ -64,15 +64,15 @@ export const defaultPanelConfigs: Record<PanelKey, PanelConfig> = {
     width: 500,   // 预览区域
     minWidth: 350,
     maxWidth: 700,
-    icon: 'preview',
+    icon: 'visibility',
     title: '预览',
     position: 'center',
   },
   taskPanel: {
     index: 5,
-    width: 200,   // 变窄
-    minWidth: 160,
-    maxWidth: 280,
+    width: 180,   // 任务面板变窄
+    minWidth: 140,
+    maxWidth: 260,
     icon: 'task_alt',
     title: '任务',
     position: 'right',

@@ -299,14 +299,12 @@ export default function NoteList({ currentView = 'all' }: NoteListProps) {
       </div>
 
       {/* 笔记列表 */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
-        {filteredNotes.length === 0 ? (
-          <div className="text-center text-slate-400 py-8">
-            <span className="material-symbols-outlined text-4xl mb-2">note_add</span>
-            <p className="text-xs">暂无笔记</p>
-            <p className="text-[10px] mt-1">点击左侧"新建笔记"开始创作</p>
-          </div>
-        ) : (
+      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
+          {filteredNotes.length === 0 ? (
+            <div className="flex-1 bg-transparent">
+              {/* 空白区域 */}
+            </div>
+          ) : (
           filteredNotes.map((note) => (
             <div
               key={note.id}

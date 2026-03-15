@@ -43,13 +43,23 @@
     },
     "bundle": {
       "active": true,
-      "targets": ["msi"],
+      "targets": ["msi", "nsis"],
       "identifier": "com.memoplan.app",
       "icon": [
         "icons/icon.ico"
       ],
       "windows": {
-        "wix": null
+        "wix": {
+          "language": "zh-CN"
+        },
+        "nsis": {
+          "installerIcon": "icons/icon.ico",
+          "headerImage": null,
+          "sidebarImage": null,
+          "license": null,
+          "installMode": "currentUser",
+          "languages": ["SimpChinese"]
+        }
       }
     },
     "security": {

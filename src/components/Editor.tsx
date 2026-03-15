@@ -92,79 +92,70 @@ export default function Editor() {
     }
   };
 
-  if (!currentNote) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-[var(--panel-bg)]">
-        <div className="text-center text-[var(--text-secondary)]">
-          <span className="material-symbols-outlined text-6xl mb-4">edit_note</span>
-          <p>{t('editor.selectOrCreate')}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-full bg-[var(--panel-bg)]">
       {/* 标题栏 */}
-      <div className="px-4 pt-3 pb-2 border-b border-[var(--panel-border)]">
+      <div className="px-3 pt-2 pb-2 border-b border-[var(--panel-border)] shrink-0">
         <input
           type="text"
           value={title}
           onChange={handleTitleChange}
-          className="w-full text-xl font-bold bg-transparent border-none outline-none text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+          className="w-full text-base font-bold bg-transparent border-none outline-none text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
           placeholder={t('sidebar.newNoteTitle')}
         />
       </div>
 
       {/* 工具栏 */}
-      <div className="h-10 border-b border-[var(--panel-border)] flex items-center justify-between px-3">
-        <div className="flex items-center gap-1">
-          <button 
-            onClick={handleTogglePin}
-            className={`p-1.5 rounded-md transition-colors ${
-              currentNote.isPinned 
-                ? 'text-primary bg-primary/10' 
-                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-[var(--text-secondary)]'
-            }`}
-            title={t('editor.pin')}
-          >
-            <span className="material-symbols-outlined text-lg">
-              push_pin
-            </span>
-          </button>
-          <button 
-            onClick={handleToggleFavorite}
-            className={`p-1.5 rounded-md transition-colors ${
-              currentNote.isFavorite 
-                ? 'text-yellow-500 bg-yellow-500/10' 
-                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-[var(--text-secondary)]'
-            }`}
-            title={t('editor.favorite')}
-          >
-            <span className="material-symbols-outlined text-lg">
-              star
-            </span>
-          </button>
-        </div>
+      {currentNote && (
+        <div className="h-9 border-b border-[var(--panel-border)] flex items-center justify-between px-3 shrink-0">
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={handleTogglePin}
+              className={`p-1.5 rounded-md transition-colors ${
+                currentNote.isPinned 
+                  ? 'text-primary bg-primary/10' 
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-[var(--text-secondary)]'
+              }`}
+              title={t('editor.pin')}
+            >
+              <span className="material-symbols-outlined text-lg">
+                push_pin
+              </span>
+            </button>
+            <button 
+              onClick={handleToggleFavorite}
+              className={`p-1.5 rounded-md transition-colors ${
+                currentNote.isFavorite 
+                  ? 'text-yellow-500 bg-yellow-500/10' 
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-[var(--text-secondary)]'
+              }`}
+              title={t('editor.favorite')}
+            >
+              <span className="material-symbols-outlined text-lg">
+                star
+              </span>
+            </button>
+          </div>
 
-        <div className="flex items-center gap-2">
-          {/* 一键生成待办按钮 */}
-          <button
-            onClick={handleConvertToTasks}
-            disabled={isConverting || !content.trim()}
-            className="flex items-center gap-1 px-3 py-1 text-xs font-medium bg-primary text-white hover:bg-primary/90 rounded-md transition-colors disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-sm">
-              {isConverting ? 'sync' : 'checklist'}
-            </span>
-            {isConverting ? t('editor.converting') : t('editor.convertToTask')}
-          </button>
+          <div className="flex items-center gap-2">
+            {/* 一键生成待办按钮 */}
+            <button
+              onClick={handleConvertToTasks}
+              disabled={isConverting || !content.trim()}
+              className="flex items-center gap-1 px-3 py-1 text-xs font-medium bg-primary text-white hover:bg-primary/90 rounded-md transition-colors disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-sm">
+                {isConverting ? 'sync' : 'checklist'}
+              </span>
+              {isConverting ? t('editor.converting') : t('editor.convertToTask')}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 转换结果提示 */}
-      {convertMessage && (
-        <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-[var(--panel-border)]">
+      {currentNote && convertMessage && (
+        <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800/50 border-b border-[var(--panel-border)] shrink-0">
           <p className="text-xs text-[var(--text-secondary)]">{convertMessage}</p>
         </div>
       )}
@@ -174,7 +165,7 @@ export default function Editor() {
         <textarea
           value={content}
           onChange={handleContentChange}
-          className="w-full h-full p-4 bg-transparent border-none outline-none resize-none text-sm leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+          className="w-full h-full p-3 bg-transparent border-none outline-none resize-none text-sm leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
           placeholder={t('editor.startWriting')}
           spellCheck={false}
           style={{

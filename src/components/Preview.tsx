@@ -57,31 +57,24 @@ export default function Preview() {
     }
   };
 
-  if (!currentNote) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-[var(--panel-bg)]">
-        <div className="text-center text-[var(--text-secondary)]">
-          <span className="material-symbols-outlined text-6xl mb-4">visibility</span>
-          <p>选择笔记以预览</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-full bg-[var(--panel-bg)]">
       {/* 标题栏 */}
-      <div className="px-4 h-12 border-b border-[var(--panel-border)] flex items-center">
-        <span className="text-sm font-medium text-[var(--text-secondary)]">预览</span>
+      <div className="px-3 h-10 border-b border-[var(--panel-border)] flex items-center shrink-0">
+        <span className="text-xs font-medium text-[var(--text-secondary)]">预览</span>
       </div>
 
       {/* 预览内容 */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div
-          className="prose dark:prose-invert max-w-none text-[var(--text-primary)]"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-          onClick={handlePreviewClick}
-        />
+      <div className="flex-1 overflow-y-auto p-3">
+        {currentNote ? (
+          <div
+            className="prose dark:prose-invert max-w-none text-[var(--text-primary)]"
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+            onClick={handlePreviewClick}
+          />
+        ) : (
+          <div className="h-full"></div>
+        )}
       </div>
     </div>
   );
