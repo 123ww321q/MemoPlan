@@ -22,9 +22,11 @@ function ResizablePanel({
   onResize: (width: number) => void;
 }) {
   const config = defaultPanelConfigs[panelKey];
+  const { toggleCollapse, isPanelCollapsed } = useLayoutStore();
   const [isResizing, setIsResizing] = useState(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(width);
+  const isCollapsed = isPanelCollapsed(panelKey);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -51,6 +53,11 @@ function ResizablePanel({
     document.addEventListener('mouseup', handleMouseUp);
   }, [width, config, onResize]);
 
+  const handleToggleCollapse = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleCollapse(panelKey);
+  }, [toggleCollapse, panelKey]);
+
   return (
     <div
       className={`shrink-0 flex flex-col h-full bg-[var(--panel-bg)] border-r border-[var(--panel-border)] transition-all duration-300 ${isResizing ? 'select-none' : ''}`}
@@ -58,13 +65,26 @@ function ResizablePanel({
     >
       {/* 面板头部 */}
       <div className="flex items-center justify-between px-2 h-8 border-b border-[var(--panel-border)] bg-slate-50/50 dark:bg-slate-800/50">
-        <div className="flex items-center gap-1.5">
-          <span className="w-4 h-4 rounded bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center">
+        <div className="flex items-center gap-1.5 overflow-hidden">
+          <span className="w-4 h-4 rounded bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">
             {config.index}
           </span>
-          <span className="material-symbols-outlined text-xs text-[var(--text-secondary)]">{config.icon}</span>
-          <span className="text-xs font-medium text-[var(--text-primary)]">{config.title}</span>
+          <span className="material-symbols-outlined text-xs text-[var(--text-secondary)] shrink-0">{config.icon}</span>
+          <span className={`text-xs font-medium text-[var(--text-primary)] truncate transition-opacity duration-300 ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
+            {config.title}
+          </span>
         </div>
+        {/* 折叠按钮 */}
+        <button
+          onClick={handleToggleCollapse}
+          className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded shrink-0 transition-colors"
+          title={isCollapsed ? '展开' : '折叠'}
+          type="button"
+        >
+          <span className="material-symbols-outlined text-xs text-[var(--text-secondary)]">
+            {isCollapsed ? 'unfold_more' : 'fold'}
+          </span>
+        </button>
       </div>
 
       {/* 面板内容 */}

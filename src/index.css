@@ -71,6 +71,23 @@ body {
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* 面板折叠动画 */
+.panel-collapse-transition {
+  transition: width 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+/* 折叠状态下的面板 */
+.panel-collapsed {
+  width: 60px !important;
+}
+
+/* 折叠状态下的标题文字隐藏 */
+.panel-collapsed .panel-title {
+  opacity: 0;
+  display: none;
+}
+
 /* 任务列表样式 */
 .task-list-item {
   list-style: none;

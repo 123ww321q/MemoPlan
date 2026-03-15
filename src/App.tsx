@@ -4,6 +4,7 @@ import { useSettingsStore, themeColors } from './stores/settingsStore';
 import { useNoteStore } from './stores/noteStore';
 import { useTaskStore } from './stores/taskStore';
 import { listen } from '@tauri-apps/api/event';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import NoteList from './components/NoteList';
@@ -26,6 +27,9 @@ function App() {
   const { settings, loadSettings } = useSettingsStore();
   const { init: initNotes, canUndo, canRedo, undo, redo, addNote, setCurrentNote } = useNoteStore();
   const { init: initTasks } = useTaskStore();
+  
+  // 启用键盘快捷键
+  useKeyboardShortcuts();
 
   const [currentView, setCurrentView] = useState<ViewType>('all');
   const [showSettings, setShowSettings] = useState(false);

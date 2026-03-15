@@ -47,7 +47,10 @@
       "identifier": "com.memoplan.app",
       "icon": [
         "icons/icon.ico"
-      ]
+      ],
+      "windows": {
+        "wix": null
+      }
     },
     "security": {
       "csp": null
